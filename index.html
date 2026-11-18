@@ -25,7 +25,7 @@ label{font-size:11px;color:var(--GT);display:block;margin-bottom:3px;text-transf
 input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);border-radius:4px;background:#fff;font-family:inherit}
 @media(min-width:900px){input,select{font-size:14px}}
 .filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(min-width:900px){.filtros{grid-template-columns:1.2fr 1fr 1fr 1.4fr 1fr 1.6fr 1fr 1.3fr auto}}
+@media(min-width:900px){.filtros{grid-template-columns:repeat(6,1fr)}}
 .btn{border:none;border-radius:4px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--N);color:#fff;white-space:nowrap}
 .btn.sec{background:#fff;color:var(--N);border:1px solid var(--BO)}
 .meta{font-size:12px;color:var(--GT);margin:-4px 0 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
@@ -51,12 +51,12 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .leg i{width:10px;height:10px;border-radius:2px;flex-shrink:0;display:inline-block}
 .leg span.v{margin-left:auto;color:var(--GT);white-space:nowrap}
 /* barras apiladas por conductor */
-.sb-row{display:grid;grid-template-columns:105px 1fr 34px;gap:8px;align-items:center;margin-bottom:4px;font-size:12px}
+.sb-row{display:grid;grid-template-columns:100px 1fr 46px;gap:8px;align-items:center;margin-bottom:4px;font-size:12px}
 .sb-row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
-@media(min-width:900px){.sb-row{grid-template-columns:170px 1fr 50px}}
+@media(min-width:900px){.sb-row{grid-template-columns:170px 1fr 62px}}
 .sb-track{display:flex;height:16px;border-radius:2px;overflow:hidden;background:#eee}
 .sb-track div{height:100%;color:#fff;font-size:10px;line-height:16px;text-align:center;overflow:hidden;white-space:nowrap}
-.sb-row .tt{font-size:11px;color:var(--GT);text-align:right}
+.sb-row .tt{font-size:10px;color:var(--GT);text-align:right;line-height:1.15}
 .sb-scroll{max-height:460px;overflow:auto;padding-right:4px}
 /* columnas por día */
 .cols{display:flex;align-items:flex-end;gap:2px;height:170px;border-bottom:1px solid var(--BO);padding-top:6px}
@@ -100,6 +100,33 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .semaforo div{border-radius:5px;padding:8px;text-align:center;color:#fff}
 .semaforo b{display:block;font-size:20px}
 .semaforo small{font-size:11px}
+/* multiselect */
+.ms{position:relative}
+.ms-btn{width:100%;text-align:left;font-size:14px;padding:8px 26px 8px 8px;border:1px solid var(--BO);border-radius:4px;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;min-height:38px}
+.ms-btn::after{content:'▾';position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--GT)}
+.ms-btn.on{border-color:var(--R);box-shadow:0 0 0 1px var(--R) inset;font-weight:600}
+.ms-pan{display:none;position:absolute;top:100%;left:0;z-index:40;background:#fff;border:1px solid var(--BO);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);width:300px;max-width:88vw;margin-top:4px}
+.ms.open .ms-pan{display:block}
+.ms-pan input{font-size:14px;border:none;border-bottom:1px solid var(--BO);border-radius:6px 6px 0 0}
+.ms-acc{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px;border-bottom:1px solid var(--BO)}
+.ms-acc a{color:var(--B);cursor:pointer;font-weight:600}
+.ms-list{max-height:280px;overflow:auto;padding:4px 0}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:13px;cursor:pointer;text-transform:none;letter-spacing:0;color:var(--N);margin:0}
+.ms.der .ms-pan{left:auto;right:0}
+.ms-opt:hover{background:#f4f5f7}
+.ms-opt input{width:16px;height:16px;flex-shrink:0;accent-color:var(--R)}
+.ms-opt span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-opt small{color:var(--GT)}
+.ms-opt.cero{opacity:.45}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:#fdecec;color:var(--R);border:1px solid #f5c2c2;border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer}
+.chip:hover{background:#fbd5d5}
+/* gestión */
+.tabla th.sort{cursor:pointer;user-select:none;white-space:nowrap}
+.tabla th.sort:hover{background:#333}
+.ges-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
+.tbl-ges{max-height:none}
+.wrap{white-space:normal;min-width:160px}
 </style>
 </head>
 <body>
@@ -107,14 +134,15 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
   <span class="badge-emp">GRIFFOIL</span>
   <h1 id="titulo">Plan de Viaje — Gestión y Dashboard</h1>
   <div class="tabs">
-    <button class="tab active" data-v="vPdv" onclick="goTo('vPdv')">Plan de Viaje</button>
+    <button class="tab active" data-v="vDash" onclick="goTo('vDash')">Dashboard</button>
+    <button class="tab" data-v="vGes" onclick="goTo('vGes')">Gestión</button>
     <button class="tab" data-v="vBit" onclick="goTo('vBit')">Bitácora</button>
   </div>
 </header>
 
 <main>
-<!-- ================= PLAN DE VIAJE ================= -->
-<section class="view active" id="vPdv">
+<!-- ================= FILTROS (compartidos Dashboard / Gestión) ================= -->
+<div id="barFiltros">
   <div class="card">
     <div class="filtros">
       <div><label>Período</label>
@@ -126,24 +154,31 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
           <option value="anio">Año actual</option>
           <option value="custom">Personalizado</option>
         </select></div>
-      <div><label>Desde</label><input type="date" id="fDesde" onchange="fPreset.value='custom'"></div>
-      <div><label>Hasta</label><input type="date" id="fHasta" onchange="fPreset.value='custom'"></div>
-      <div><label>Conductor</label><select id="fCond" onchange="render()"></select></div>
-      <div><label>Interno</label><select id="fInt" onchange="render()"></select></div>
-      <div><label>Destino</label><select id="fDest" onchange="render()"></select></div>
-      <div><label>Control</label><select id="fCtrl" onchange="render()"></select></div>
+      <div><label>Desde</label><input type="date" id="fDesde" onchange="cambioFecha()"></div>
+      <div><label>Hasta</label><input type="date" id="fHasta" onchange="cambioFecha()"></div>
+      <div><label>Conductor</label><div class="ms" id="ms_cond"></div></div>
+      <div><label>Interno</label><div class="ms" id="ms_int"></div></div>
+      <div><label>Destino</label><div class="ms" id="ms_dest"></div></div>
+      <div><label>Control</label><div class="ms" id="ms_ctrl"></div></div>
+      <div><label>Cumplido RutaSky</label><div class="ms" id="ms_rs"></div></div>
+      <div><label>Motivo</label><div class="ms" id="ms_mot"></div></div>
       <div><label>Punto de partida</label><input id="fPart" placeholder="Contiene…" oninput="render()"></div>
-      <div style="align-self:end;display:flex;gap:6px"><button class="btn" onclick="cargar()">Actualizar</button><button class="btn sec" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
+      <div><label>Buscar</label><input id="fTxt" placeholder="Id, observación…" oninput="render()"></div>
+      <div style="align-self:end;display:flex;gap:6px"><button class="btn sec" onclick="limpiarFiltros()">Limpiar</button><button class="btn sec" onclick="recargar()" title="Volver a leer la planilla">↻</button><button class="btn" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
     </div>
+    <div class="chips" id="chips"></div>
   </div>
   <div id="errBox" style="display:none;background:#fdecec;border:1px solid #C00000;border-left:5px solid #C00000;border-radius:6px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5;word-break:break-all"></div>
   <div class="meta"><span id="metaRango"></span><span id="metaCarga"></span></div>
+</div>
 
+<!-- ================= DASHBOARD ================= -->
+<section class="view active" id="vDash">
   <div class="kpis" id="kpis"></div>
 
   <!-- Indicadores copiados del Looker -->
   <div class="grid c21 sec-gap">
-    <div class="card"><h2>Plan de viaje por conductor <small>resultado del control</small></h2><div id="leyCtrl1" class="leyenda"></div><div class="sb-scroll" id="porConductor"></div></div>
+    <div class="card"><h2>Plan de viaje por conductor <small>ordenado por mejor cumplimiento</small></h2><div id="leyCtrl1" class="leyenda"></div><div class="sb-scroll" id="porConductor"></div></div>
     <div class="grid" style="gap:12px">
       <div class="card"><h2>% de cumplimiento <small>según RutaSky</small></h2><div id="pieRS"></div></div>
       <div class="card"><h2>Resultado de control</h2><div id="pieCtrl"></div></div>
@@ -175,6 +210,14 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
   </div>
 </section>
 
+<!-- ================= GESTIÓN ================= -->
+<section class="view" id="vGes">
+  <div class="card">
+    <div class="ges-bar"><h2 style="margin:0">Gestión de planes de viaje</h2><span id="gesInfo"></span></div>
+    <div id="tblGes"></div>
+  </div>
+</section>
+
 <!-- ================= BITÁCORA ================= -->
 <section class="view" id="vBit">
   <div class="card">
@@ -202,25 +245,101 @@ const CTRL_ORDEN = ['OK','OK C/OBS','NO','N/A','SIN CONTROL'];
 const CTRL_COLOR = {'OK':'#1D9E75','OK C/OBS':'#378ADD','NO':'#C00000','N/A':'#9ca3af','SIN CONTROL':'#EF9F27'};
 const PALETA = ['#C00000','#378ADD','#EF9F27','#1D9E75','#E07B39','#6b7280','#1a1a1a'];
 
-let DATA = [], FILTRADO = [], META = {};
+let DATA = [], FILTRADO = [], META = {}, RANGO = {d:'',h:''};
 
 // ===================== UTIL =====================
 const $ = id => document.getElementById(id);
 function mostrarToast(m,t){const e=$('toast');e.textContent=m;e.className=t||'ok';e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',3500)}
-function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const pct = (a,b) => b ? (100*a/b) : 0;
 const f1 = n => (Math.round(n*10)/10).toLocaleString('es-AR');
 const nf = n => n.toLocaleString('es-AR');
-const iso = d => d.toISOString().slice(0,10);
+const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const dmy = s => s ? s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4) : '';
 const dm = s => s ? s.slice(8,10)+'/'+s.slice(5,7) : '';
 function goTo(v){
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
-  $('titulo').textContent = v==='vPdv' ? 'Plan de Viaje — Gestión y Dashboard' : 'Bitácora — Gestión y Dashboard';
+  $('barFiltros').style.display = v==='vBit' ? 'none' : 'block';
+  $('titulo').textContent = {vDash:'Plan de Viaje — Dashboard',vGes:'Plan de Viaje — Gestión',vBit:'Bitácora'}[v];
   window.scrollTo(0,0);
 }
 function estCtrl(c){return `<span class="est" style="background:${CTRL_COLOR[c]||'#6b7280'}">${esc(c)}</span>`}
+
+// ===================== FILTROS MÚLTIPLES (vinculados entre sí) =====================
+const MS = {
+  cond:{lab:'Conductor',        get:r=>r[I.COND]},
+  int: {lab:'Interno',          get:r=>r[I.INT]},
+  dest:{lab:'Destino',          get:r=>r[I.DEST]},
+  ctrl:{lab:'Control',          get:r=>r[I.CTRL], orden:CTRL_ORDEN},
+  rs:  {lab:'Cumplido RutaSky', get:r=>r[I.RS]?'Sí':'No', orden:['Sí','No']},
+  mot: {lab:'Motivo',           get:r=>r[I.COM]?r[I.COM].replace(/\s+/g,' ').trim():'(sin motivo)'}
+};
+Object.values(MS).forEach(m=>m.sel=new Set());
+
+function initMS(){
+  for(const k in MS){
+    $('ms_'+k).innerHTML=`<button type="button" class="ms-btn" onclick="toggleMS('${k}',event)">Todos</button>
+      <div class="ms-pan" onclick="event.stopPropagation()">
+        <input placeholder="Buscar…" oninput="pintarMS('${k}')">
+        <div class="ms-acc"><a onclick="msTodos('${k}')">Seleccionar visibles</a><a onclick="msLimpiar('${k}')">Limpiar</a></div>
+        <div class="ms-list"></div></div>`;
+  }
+  document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open')));
+}
+function toggleMS(k,e){
+  e.stopPropagation(); const el=$('ms_'+k); const abierto=el.classList.contains('open');
+  document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open'));
+  if(!abierto){el.classList.toggle('der', el.getBoundingClientRect().left+310>window.innerWidth); el.classList.add('open'); el.querySelector('input').value=''; pintarMS(k); el.querySelector('input').focus();}
+}
+// Opciones con cantidades calculadas aplicando TODOS los demás filtros (cascada)
+function opcionesMS(k){
+  const m={}; filtrar(k).forEach(r=>{const v=MS[k].get(r); m[v]=(m[v]||0)+1});
+  DATA.forEach(r=>{const v=MS[k].get(r); if(!(v in m)) m[v]=0});
+  MS[k].sel.forEach(v=>{if(!(v in m)) m[v]=0});
+  const arr=Object.entries(m);
+  if(MS[k].orden) arr.sort((a,b)=>MS[k].orden.indexOf(a[0])-MS[k].orden.indexOf(b[0]));
+  else arr.sort((a,b)=>((b[1]>0)-(a[1]>0))||a[0].localeCompare(b[0]));
+  return arr;
+}
+function pintarMS(k){
+  const el=$('ms_'+k); const q=el.querySelector('input').value.trim().toLowerCase();
+  const arr=opcionesMS(k).filter(([v])=>!q||v.toLowerCase().includes(q)); el._vis=arr.map(x=>x[0]);
+  el.querySelector('.ms-list').innerHTML = arr.length ? arr.map(([v,n],i)=>`<label class="ms-opt ${n?'':'cero'}">
+    <input type="checkbox" ${MS[k].sel.has(v)?'checked':''} onchange="msToggle('${k}',${i},this.checked)"><span title="${esc(v)}">${esc(v)}</span><small>${nf(n)}</small></label>`).join('')
+    : '<div class="vacio">Sin coincidencias</div>';
+}
+function msToggle(k,i,on){const v=$('ms_'+k)._vis[i]; on?MS[k].sel.add(v):MS[k].sel.delete(v); render(); pintarMS(k);}
+function msTodos(k){$('ms_'+k)._vis.forEach(v=>MS[k].sel.add(v)); render(); pintarMS(k);}
+function msLimpiar(k){MS[k].sel.clear(); render(); pintarMS(k);}
+function quitarChip(k,i){const v=[...MS[k].sel][i]; MS[k].sel.delete(v); render();}
+function limpiarFiltros(){for(const k in MS) MS[k].sel.clear(); fPart.value=''; fTxt.value=''; render();}
+function pintarBotonesMS(){
+  const chips=[];
+  for(const k in MS){
+    const s=[...MS[k].sel]; const b=$('ms_'+k).querySelector('.ms-btn');
+    b.textContent = !s.length ? 'Todos' : s.length===1 ? s[0] : `${s.length} seleccionados`;
+    b.classList.toggle('on',s.length>0); b.title=s.join('\n');
+    s.forEach((v,i)=>chips.push(`<span class="chip" onclick="quitarChip('${k}',${i})">${MS[k].lab}: ${esc(v)} ✕</span>`));
+  }
+  if(fPart.value.trim()) chips.push(`<span class="chip" onclick="fPart.value='';render()">Partida contiene: ${esc(fPart.value)} ✕</span>`);
+  if(fTxt.value.trim()) chips.push(`<span class="chip" onclick="fTxt.value='';render()">Buscar: ${esc(fTxt.value)} ✕</span>`);
+  if(chips.length>1) chips.push(`<span class="chip" style="background:#fff;color:var(--N);border-color:var(--BO)" onclick="limpiarFiltros()">Limpiar todo</span>`);
+  $('chips').innerHTML=chips.join('');
+}
+// excl = clave del filtro múltiple a ignorar (para calcular sus propias opciones)
+function filtrar(excl){
+  const d=fDesde.value, h=fHasta.value, p=fPart.value.trim().toLowerCase(), t=fTxt.value.trim().toLowerCase();
+  const act=Object.entries(MS).filter(([k,m])=>k!==excl&&m.sel.size);
+  return DATA.filter(r=>{
+    const dia=r[I.FECHA].slice(0,10);
+    if(d&&dia<d) return false; if(h&&dia>h) return false;
+    for(const [,m] of act) if(!m.sel.has(m.get(r))) return false;
+    if(p&&!r[I.PART].toLowerCase().includes(p)) return false;
+    if(t&&!(r[I.ID]+' '+r[I.OBSTXT]+' '+r[I.COM]+' '+r[I.DEST]+' '+r[I.COND]+' '+r[I.INT]).toLowerCase().includes(t)) return false;
+    return true;
+  });
+}
 
 // ===================== PERÍODO =====================
 function aplicarPreset(){
@@ -231,11 +350,20 @@ function aplicarPreset(){
   if(p==='mes'){d=new Date(h.getFullYear(),h.getMonth(),1)}
   if(p==='mesAnt'){d=new Date(h.getFullYear(),h.getMonth()-1,1); a=new Date(h.getFullYear(),h.getMonth(),0)}
   if(p==='anio'){d=new Date(h.getFullYear(),0,1)}
-  fDesde.value=iso(d); fHasta.value=iso(a); cargar();
+  fDesde.value=iso(d); fHasta.value=iso(a); asegurarRango();
 }
+function cambioFecha(){fPreset.value='custom'; asegurarRango();}
+// Si el período pedido ya está cargado, filtra al instante; si no, lo trae del Apps Script
+function asegurarRango(){
+  if(!fDesde.value||!fHasta.value) return;
+  if(fDesde.value>fHasta.value) return mostrarToast('"Desde" no puede ser mayor que "Hasta"','err');
+  if(RANGO.d && fDesde.value>=RANGO.d && fHasta.value<=RANGO.h) return render();
+  cargar(fDesde.value,fHasta.value);
+}
+function recargar(){cargar(fDesde.value,fHasta.value)}
 
 // ===================== CARGA =====================
-async function cargar(){
+async function cargar(desde,hasta){
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(API_URL.trim())){
     mostrarError(`La URL del Apps Script no está bien configurada en el HTML.<br>Valor actual de <b>API_URL</b>: <code>${esc(API_URL)}</code><br>
       Tiene que ser la URL de la implementación como aplicación web, con este formato:<br><code>https://script.google.com/macros/s/XXXXXXXX/exec</code>`);
@@ -243,31 +371,62 @@ async function cargar(){
   }
   $('loader').style.display='flex';
   try{
-    const r = await fetch(API_URL.trim()+'?'+new URLSearchParams({action:'pdv',desde:fDesde.value,hasta:fHasta.value}));
+    const r = await fetch(API_URL.trim()+'?'+new URLSearchParams({action:'pdv',desde,hasta}));
     const txt = await r.text();
     let j; try{ j = JSON.parse(txt) }catch(_){
       throw new Error(`El Apps Script no devolvió datos (HTTP ${r.status}). Revisá que esté implementado como "Aplicación web", con acceso "Cualquier usuario", y que se haya creado una versión nueva. Respuesta: ${txt.slice(0,120)}`);
     }
-    $('errBox').style.display='none';
     if(!j.ok) throw new Error(j.error||'Error del servidor');
-    DATA = j.rows; META = j;
-    $('metaRango').textContent = `Período: ${dmy(j.desde)} al ${dmy(j.hasta)} · ${nf(DATA.length)} planes`;
+    $('errBox').style.display='none';
+    DATA = j.rows; META = j; RANGO = {d:j.desde,h:j.hasta};
     $('metaCarga').textContent = `Último plan cargado en la base: ${dmy(j.ultimaCarga.slice(0,10))} ${j.ultimaCarga.slice(11)}`;
-    llenarCombos(); render();
+    render();
   }catch(e){mostrarError(esc(e.message))}
   finally{$('loader').style.display='none'}
 }
 function mostrarError(html){const b=$('errBox');b.innerHTML='<b>No se pudieron cargar los datos.</b><br>'+html;b.style.display='block';console.error(b.innerText)}
-function llenarCombos(){
-  const set=(sel,idx,todos)=>{const prev=sel.value;const vals=[...new Set(DATA.map(r=>r[idx]).filter(Boolean))].sort();
-    sel.innerHTML=`<option value="">${todos}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
-    if(vals.includes(prev)) sel.value=prev;};
-  set(fCond,I.COND,'Todos'); set(fInt,I.INT,'Todos'); set(fDest,I.DEST,'Todos');
-  const prev=fCtrl.value; fCtrl.innerHTML='<option value="">Todos</option>'+CTRL_ORDEN.map(c=>`<option>${c}</option>`).join(''); fCtrl.value=prev;
+
+// ===================== GESTIÓN =====================
+let SORT={col:'fecha',dir:-1}, GES_LIM=100;
+const GCOLS=[
+  {k:'fecha',t:'Fecha',          v:r=>r[I.FECHA],  f:r=>dmy(r[I.FECHA])+' '+r[I.FECHA].slice(11)},
+  {k:'id',   t:'Id PDV',         v:r=>+r[I.ID]||0, f:r=>'<b>#'+esc(r[I.ID])+'</b>'},
+  {k:'cond', t:'Conductor',      v:r=>r[I.COND],   f:r=>esc(r[I.COND])},
+  {k:'int',  t:'Interno',        v:r=>r[I.INT],    f:r=>esc(r[I.INT])},
+  {k:'part', t:'Punto de partida',v:r=>r[I.PART],  f:r=>`<div class="wrap">${esc(r[I.PART])}</div>`},
+  {k:'dest', t:'Destino',        v:r=>r[I.DEST],   f:r=>`<div class="wrap">${esc(r[I.DEST])}</div>`},
+  {k:'rs',   t:'RutaSky',        v:r=>r[I.RS],     f:r=>`<span class="est" style="background:${r[I.RS]?'#1D9E75':'#C00000'}">${r[I.RS]?'SÍ':'NO'}</span>`},
+  {k:'obs',  t:'Observación chofer',v:r=>r[I.OBSTXT],f:r=>`<div class="wrap">${esc(r[I.OBSTXT])}</div>`},
+  {k:'ctrl', t:'Control',        v:r=>CTRL_ORDEN.indexOf(r[I.CTRL]), f:r=>estCtrl(r[I.CTRL])},
+  {k:'com',  t:'Comentarios',    v:r=>r[I.COM],    f:r=>`<div class="wrap">${esc(r[I.COM])}</div>`},
+  {k:'tipo', t:'Tipo detención', v:r=>r[I.TIPO],   f:r=>esc(r[I.TIPO]), val:true},
+  {k:'est',  t:'Estado validación',v:r=>r[I.EST],  f:r=>esc(r[I.EST]),  val:true}
+];
+function ordenarGes(k){ if(SORT.col===k) SORT.dir*=-1; else {SORT.col=k; SORT.dir=(k==='fecha'||k==='id')?-1:1;} GES_LIM=100; renderGes(); }
+function filasGestion(){
+  const c=GCOLS.find(x=>x.k===SORT.col);
+  return [...FILTRADO].sort((a,b)=>{
+    const x=c.v(a), y=c.v(b); let r=(x<y?-1:x>y?1:0)*SORT.dir; if(r) return r;
+    // desempate: fecha y luego Id de plan (en el mismo sentido si se ordena por fecha; si no, más nuevo primero)
+    const s = SORT.col==='fecha' ? SORT.dir : -1;
+    return (a[I.FECHA].localeCompare(b[I.FECHA])*s) || (((+a[I.ID])-(+b[I.ID]))*s);
+  });
 }
-function filtrar(){
-  const c=fCond.value,i=fInt.value,d=fDest.value,k=fCtrl.value,p=fPart.value.trim().toLowerCase();
-  return DATA.filter(r=>(!c||r[I.COND]===c)&&(!i||r[I.INT]===i)&&(!d||r[I.DEST]===d)&&(!k||r[I.CTRL]===k)&&(!p||r[I.PART].toLowerCase().includes(p)));
+function renderGes(){
+  const cols=GCOLS.filter(c=>!c.val||META.tieneValidacion);
+  const rows=filasGestion(); const vis=rows.slice(0,GES_LIM);
+  const c=GCOLS.find(x=>x.k===SORT.col);
+  $('gesInfo').innerHTML=`<b>${nf(rows.length)}</b> planes · orden: <b>${c.t} ${SORT.dir<0?'↓':'↑'}</b> (tocá un encabezado para cambiarlo)`;
+  if(!rows.length){$('tblGes').innerHTML='<div class="vacio">Sin planes para los filtros aplicados</div>';return}
+  const card=r=>`<div class="it" style="border-left-color:${CTRL_COLOR[r[I.CTRL]]||'#6b7280'}">
+    <div class="t"><span>#${esc(r[I.ID])} · ${dmy(r[I.FECHA])} ${r[I.FECHA].slice(11)}</span>${estCtrl(r[I.CTRL])}</div>
+    <div class="s">${esc(r[I.COND])} · ${esc(r[I.INT])} · RutaSky: ${r[I.RS]?'Sí':'No'}</div>
+    <div>${esc(r[I.PART])} → <b>${esc(r[I.DEST])}</b></div>
+    ${r[I.OBSTXT]?`<div class="s"><i>"${esc(r[I.OBSTXT])}"</i></div>`:''}${r[I.COM]?`<div class="s" style="color:#C00000">${esc(r[I.COM])}</div>`:''}</div>`;
+  $('tblGes').innerHTML=`<div class="cards">${vis.map(card).join('')}</div>
+    <div class="tbl-scroll tbl-ges"><table class="tabla"><thead><tr>${cols.map(x=>`<th class="sort" onclick="ordenarGes('${x.k}')">${x.t}${SORT.col===x.k?(SORT.dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead>
+    <tbody>${vis.map(r=>`<tr>${cols.map(x=>`<td>${x.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    ${rows.length>GES_LIM?`<div class="mas"><button class="btn sec" onclick="GES_LIM+=200;renderGes()">Ver más (${nf(rows.length-GES_LIM)} restantes)</button></div>`:''}`;
 }
 
 // ===================== COMPONENTES =====================
@@ -302,6 +461,8 @@ function lista(el, rows, cols, cardFn, limite){
 // ===================== RENDER =====================
 function render(){
   const R = FILTRADO = filtrar();
+  pintarBotonesMS(); GES_LIM=100; renderGes();
+  $('metaRango').textContent = `Período: ${dmy(fDesde.value)} al ${dmy(fHasta.value)} · ${nf(R.length)} planes con los filtros aplicados`;
   const n=R.length;
   const conductores=new Set(R.map(r=>r[I.COND])).size;
   const rsOk=R.filter(r=>r[I.RS]===1).length;
@@ -329,10 +490,13 @@ function render(){
   // Por conductor (barras 100% apiladas)
   leyendaCtrl('leyCtrl1'); leyendaCtrl('leyCtrl2');
   const porC={}; R.forEach(r=>{const c=r[I.COND];(porC[c]=porC[c]||{t:0})[r[I.CTRL]]=(porC[c][r[I.CTRL]]||0)+1;porC[c].t++});
-  const lc=Object.entries(porC).sort((a,b)=>b[1].t-a[1].t);
+  // Orden: mejor cumplimiento por control primero (OK + OK c/obs sobre controlados); desempate por cantidad de PDV
+  const cumpl=o=>{const c=(o['OK']||0)+(o['OK C/OBS']||0)+(o['NO']||0);return c?((o['OK']||0)+(o['OK C/OBS']||0))/c:-1};
+  Object.values(porC).forEach(o=>o.cp=cumpl(o));
+  const lc=Object.entries(porC).sort((a,b)=>(b[1].cp-a[1].cp)||(b[1].t-a[1].t));
   $('porConductor').innerHTML = lc.length ? lc.map(([c,o])=>`<div class="sb-row"><div class="nm" title="${esc(c)}">${esc(c)}</div>
     <div class="sb-track">${CTRL_ORDEN.filter(k=>o[k]).map(k=>{const p=pct(o[k],o.t);return `<div style="width:${p}%;background:${CTRL_COLOR[k]}" title="${k}: ${o[k]} (${f1(p)}%)">${p>=12?f1(p)+'%':''}</div>`}).join('')}</div>
-    <div class="tt">${nf(o.t)}</div></div>`).join('') : '<div class="vacio">Sin datos</div>';
+    <div class="tt" title="Cumplimiento por control · cantidad de PDV"><b style="color:${o.cp<0?'#6b7280':o.cp>=.9?'#1D9E75':o.cp>=.75?'#EF9F27':'#C00000'}">${o.cp<0?'—':f1(o.cp*100)+'%'}</b><br>${nf(o.t)} PDV</div></div>`).join('') : '<div class="vacio">Sin datos</div>';
 
   // Tortas
   pie('pieRS',[{l:'Sí',v:rsOk,c:'#1D9E75'},{l:'No',v:n-rsOk,c:'#C00000'}],n?f1(pct(rsOk,n))+'%':'');
@@ -403,12 +567,13 @@ function exportarCSV(){
   if(!FILTRADO.length) return mostrarToast('No hay filas para exportar','err');
   const cab=['Id','Conductor','Interno','Fecha','Punto de partida','Destino','Cumplida RutaSky','Tiene observaciones','Observaciones','Control','Comentarios','Tipo detención','Estado validación'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  const csv='﻿'+[cab.join(';'),...FILTRADO.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6]?'Sí':'No',r[7]?'Sí':'No',r[8],r[9],r[10],r[11],r[12]].map(q).join(';'))].join('\n');
+  const csv='﻿'+[cab.join(';'),...filasGestion().map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6]?'Sí':'No',r[7]?'Sí':'No',r[8],r[9],r[10],r[11],r[12]].map(q).join(';'))].join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download=`plan_de_viaje_${fDesde.value}_${fHasta.value}.csv`; a.click();
 }
 
 // ===================== INIT =====================
+initMS();
 aplicarPreset();
 </script>
 </body>
