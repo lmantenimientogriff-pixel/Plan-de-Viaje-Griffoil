@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Plan de Viaje — Griffoil S.A.</title>
+<style>
+:root{--R:#C00000;--N:#1a1a1a;--BG:#f4f5f7;--BO:#e0e2e8;--GT:#6b7280;--G:#1D9E75;--A:#EF9F27;--O:#E07B39;--B:#378ADD}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Calibri,"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;background:var(--BG);color:var(--N);font-size:14px}
+header{background:var(--N);height:52px;position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:0 14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.badge-emp{background:var(--R);color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;padding:4px 8px;border-radius:2px}
+header h1{color:#fff;font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:4px}
+.tab{background:rgba(255,255,255,.10);color:#fff;border:none;padding:8px 14px;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.tab.active{background:var(--R)}
+main{max-width:520px;margin:0 auto;padding:14px}
+@media(min-width:900px){main{max-width:1400px}}
+.view{display:none}.view.active{display:block}
+.card{background:#fff;border:1px solid var(--BO);border-radius:6px;padding:14px;margin-bottom:12px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 small{font-size:11px;color:var(--GT);text-transform:none;letter-spacing:0;font-weight:400}
+.tag-rec{font-size:10px;background:#eef5fd;color:var(--B);padding:2px 6px;border-radius:3px;letter-spacing:.3px;font-weight:700}
+label{font-size:11px;color:var(--GT);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);border-radius:4px;background:#fff;font-family:inherit}
+@media(min-width:900px){input,select{font-size:14px}}
+.filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(min-width:900px){.filtros{grid-template-columns:1.2fr 1fr 1fr 1.4fr 1fr 1.6fr 1fr 1.3fr auto}}
+.btn{border:none;border-radius:4px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--N);color:#fff;white-space:nowrap}
+.btn.sec{background:#fff;color:var(--N);border:1px solid var(--BO)}
+.meta{font-size:12px;color:var(--GT);margin:-4px 0 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+/* KPIs */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(min-width:900px){.kpis{grid-template-columns:repeat(8,1fr)}}
+.kpi{background:#fff;border:1px solid var(--BO);border-top:4px solid var(--N);border-radius:6px;padding:10px 12px}
+.kpi .l{font-size:11px;color:var(--GT);text-transform:uppercase;letter-spacing:.4px;min-height:28px}
+.kpi .n{font-size:24px;font-weight:700;line-height:1.1}
+.kpi .s{font-size:11px;color:var(--GT);margin-top:2px}
+.kpi.g{border-top-color:var(--G)}.kpi.a{border-top-color:var(--A)}.kpi.r{border-top-color:var(--R)}.kpi.b{border-top-color:var(--B)}
+/* grilla */
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.grid.c2{grid-template-columns:1fr 1fr}.grid.c3{grid-template-columns:1fr 1fr 1fr}.grid.c21{grid-template-columns:2fr 1fr}}
+.grid>.card{margin-bottom:0}
+.sec-gap{margin-bottom:12px}
+/* torta */
+.pie-wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pie{width:130px;height:130px;border-radius:50%;flex-shrink:0;position:relative}
+.pie::after{content:attr(data-c);position:absolute;inset:30px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.leg{font-size:12px;flex:1;min-width:140px}
+.leg div{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.leg i{width:10px;height:10px;border-radius:2px;flex-shrink:0;display:inline-block}
+.leg span.v{margin-left:auto;color:var(--GT);white-space:nowrap}
+/* barras apiladas por conductor */
+.sb-row{display:grid;grid-template-columns:105px 1fr 34px;gap:8px;align-items:center;margin-bottom:4px;font-size:12px}
+.sb-row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+@media(min-width:900px){.sb-row{grid-template-columns:170px 1fr 50px}}
+.sb-track{display:flex;height:16px;border-radius:2px;overflow:hidden;background:#eee}
+.sb-track div{height:100%;color:#fff;font-size:10px;line-height:16px;text-align:center;overflow:hidden;white-space:nowrap}
+.sb-row .tt{font-size:11px;color:var(--GT);text-align:right}
+.sb-scroll{max-height:460px;overflow:auto;padding-right:4px}
+/* columnas por día */
+.cols{display:flex;align-items:flex-end;gap:2px;height:170px;border-bottom:1px solid var(--BO);padding-top:6px}
+.col{flex:1;display:flex;flex-direction:column-reverse;height:100%;min-width:3px;cursor:default}
+.col div{width:100%}
+.xlab{display:flex;gap:2px;font-size:10px;color:var(--GT);margin-top:3px}
+.xlab span{flex:1;text-align:center;overflow:hidden;white-space:nowrap}
+.leyenda{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:8px}
+.leyenda i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:-1px}
+/* matriz */
+.mx{width:100%;border-collapse:collapse;font-size:13px;text-align:center}
+.mx th,.mx td{border:1px solid var(--BO);padding:10px}
+.mx th{background:var(--N);color:#fff;font-weight:600}
+.mx td.h{background:#f7f7f9;font-weight:600;text-align:left}
+.mx .ok{background:#e8f6f1;color:var(--G);font-weight:700}
+.mx .bad{background:#fdecec;color:var(--R);font-weight:700}
+/* barras simples */
+.bar-item{display:grid;grid-template-columns:1fr 46px;gap:6px;margin-bottom:6px;font-size:12px}
+.bar-item .lb{grid-column:1/3;display:flex;justify-content:space-between}
+.bar-track{height:8px;background:#eee;border-radius:4px;overflow:hidden;grid-column:1/3}
+.bar-fill{height:100%;border-radius:4px}
+/* tablas / tarjetas dual render */
+.tabla{display:none;width:100%;border-collapse:collapse;font-size:12px}
+.tabla th{background:var(--N);color:#fff;text-align:left;padding:7px 8px;font-weight:600;position:sticky;top:0}
+.tabla td{padding:6px 8px;border-bottom:1px solid var(--BO);vertical-align:top}
+.tabla tr:nth-child(even) td{background:#fafafb}
+.tbl-scroll{max-height:420px;overflow:auto}
+.cards .it{border:1px solid var(--BO);border-left:4px solid var(--GT);border-radius:5px;padding:9px;margin-bottom:8px;font-size:13px}
+.cards .it .t{font-weight:700;display:flex;justify-content:space-between;gap:6px}
+.cards .it .s{color:var(--GT);font-size:12px}
+@media(min-width:900px){.cards{display:none}.tabla{display:table}}
+.est{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;color:#fff;letter-spacing:.4px;white-space:nowrap}
+.mas{text-align:center;margin-top:8px}
+.vacio{color:var(--GT);text-align:center;padding:18px;font-size:13px}
+.loader{position:fixed;inset:0;background:rgba(244,245,247,.75);display:none;align-items:center;justify-content:center;z-index:30;font-weight:600}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 18px;border-radius:4px;color:#fff;font-weight:600;display:none;z-index:99;max-width:90%}
+#toast.ok{background:var(--G)}#toast.err{background:var(--R)}
+.svg-line text{font-size:10px;fill:var(--GT)}
+.nota{font-size:11px;color:var(--GT);margin-top:8px;line-height:1.4}
+.semaforo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.semaforo div{border-radius:5px;padding:8px;text-align:center;color:#fff}
+.semaforo b{display:block;font-size:20px}
+.semaforo small{font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge-emp">GRIFFOIL</span>
+  <h1 id="titulo">Plan de Viaje — Gestión y Dashboard</h1>
+  <div class="tabs">
+    <button class="tab active" data-v="vPdv" onclick="goTo('vPdv')">Plan de Viaje</button>
+    <button class="tab" data-v="vBit" onclick="goTo('vBit')">Bitácora</button>
+  </div>
+</header>
+
+<main>
+<!-- ================= PLAN DE VIAJE ================= -->
+<section class="view active" id="vPdv">
+  <div class="card">
+    <div class="filtros">
+      <div><label>Período</label>
+        <select id="fPreset" onchange="aplicarPreset()">
+          <option value="30">Últimos 30 días</option>
+          <option value="semAnt">Semana anterior (lun–dom)</option>
+          <option value="mes">Mes actual</option>
+          <option value="mesAnt">Mes anterior</option>
+          <option value="anio">Año actual</option>
+          <option value="custom">Personalizado</option>
+        </select></div>
+      <div><label>Desde</label><input type="date" id="fDesde" onchange="fPreset.value='custom'"></div>
+      <div><label>Hasta</label><input type="date" id="fHasta" onchange="fPreset.value='custom'"></div>
+      <div><label>Conductor</label><select id="fCond" onchange="render()"></select></div>
+      <div><label>Interno</label><select id="fInt" onchange="render()"></select></div>
+      <div><label>Destino</label><select id="fDest" onchange="render()"></select></div>
+      <div><label>Control</label><select id="fCtrl" onchange="render()"></select></div>
+      <div><label>Punto de partida</label><input id="fPart" placeholder="Contiene…" oninput="render()"></div>
+      <div style="align-self:end;display:flex;gap:6px"><button class="btn" onclick="cargar()">Actualizar</button><button class="btn sec" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
+    </div>
+  </div>
+  <div class="meta"><span id="metaRango"></span><span id="metaCarga"></span></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <!-- Indicadores copiados del Looker -->
+  <div class="grid c21 sec-gap">
+    <div class="card"><h2>Plan de viaje por conductor <small>resultado del control</small></h2><div id="leyCtrl1" class="leyenda"></div><div class="sb-scroll" id="porConductor"></div></div>
+    <div class="grid" style="gap:12px">
+      <div class="card"><h2>% de cumplimiento <small>según RutaSky</small></h2><div id="pieRS"></div></div>
+      <div class="card"><h2>Resultado de control</h2><div id="pieCtrl"></div></div>
+    </div>
+  </div>
+
+  <div class="grid c21 sec-gap">
+    <div class="card"><h2>Resultado de control por día</h2><div id="leyCtrl2" class="leyenda"></div><div id="porDia"></div></div>
+    <div class="card"><h2>Comentarios <small>motivos del control</small></h2><div id="pieMot"></div></div>
+  </div>
+
+  <!-- Indicadores recomendados -->
+  <div class="grid c2 sec-gap">
+    <div class="card"><h2>Cumplimiento semanal: RutaSky vs Control <span class="tag-rec">RECOMENDADO</span></h2><div id="tendencia"></div>
+      <div class="nota">La distancia entre las dos líneas es la <b>brecha de confiabilidad</b> del tilde de RutaSky. Objetivo: que se acerque a cero con el nuevo criterio satelital.</div></div>
+    <div class="card"><h2>Confiabilidad del tilde RutaSky <span class="tag-rec">RECOMENDADO</span></h2><div id="matriz"></div>
+      <div class="nota"><b>Falso verde</b>: RutaSky dice cumplido y el control dice NO. <b>Falso rojo</b>: RutaSky dice no cumplido y el control dice OK. Solo cuenta planes controlados.</div></div>
+  </div>
+
+  <div class="grid c3 sec-gap">
+    <div class="card"><h2>Backlog de control <span class="tag-rec">RECOMENDADO</span></h2><div id="backlogSem"></div><div id="backlog"></div></div>
+    <div class="card"><h2>Reincidentes (más NO) <span class="tag-rec">RECOMENDADO</span></h2><div id="reinc"></div></div>
+    <div class="card"><h2>Destinos con más NO <span class="tag-rec">RECOMENDADO</span></h2><div id="destNo"></div></div>
+  </div>
+
+  <div class="grid c2 sec-gap">
+    <div class="card"><h2>Comentarios control PDV</h2><div id="tblComent"></div></div>
+    <div class="card"><h2>Destinos de plan de viaje</h2><div id="tblDest"></div></div>
+  </div>
+</section>
+
+<!-- ================= BITÁCORA ================= -->
+<section class="view" id="vBit">
+  <div class="card">
+    <h2>Bitácora — control de unidad previo al viaje</h2>
+    <div class="vacio" style="text-align:left;line-height:1.6">
+      <b>En preparación (standby).</b><br>
+      Indicadores previstos, igual que en Looker: bitácoras por conductor, bitácoras por día, % con ítems no aptos, % con observaciones, total de bitácoras y conductores.<br>
+      Recomendados: cobertura bitácora vs plan de viaje (planes sin bitácora del día), unidades que salieron con ítems no aptos (alerta crítica) y reincidencia de no aptos por interno.<br>
+      Pendiente: cargar la pestaña <b>Bitacoras</b> en la planilla desde RutaSky.
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="loader" id="loader">Cargando datos…</div>
+<div id="toast"></div>
+
+<script>
+// ===================== CONFIG =====================
+const API_URL = 'PEGAR_AQUI_URL_EXEC_DEL_APPS_SCRIPT';
+
+// Índices de la fila compacta que devuelve el backend
+const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12};
+const CTRL_ORDEN = ['OK','OK C/OBS','NO','N/A','SIN CONTROL'];
+const CTRL_COLOR = {'OK':'#1D9E75','OK C/OBS':'#378ADD','NO':'#C00000','N/A':'#9ca3af','SIN CONTROL':'#EF9F27'};
+const PALETA = ['#C00000','#378ADD','#EF9F27','#1D9E75','#E07B39','#6b7280','#1a1a1a'];
+
+let DATA = [], FILTRADO = [], META = {};
+
+// ===================== UTIL =====================
+const $ = id => document.getElementById(id);
+function mostrarToast(m,t){const e=$('toast');e.textContent=m;e.className=t||'ok';e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',3500)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+const pct = (a,b) => b ? (100*a/b) : 0;
+const f1 = n => (Math.round(n*10)/10).toLocaleString('es-AR');
+const nf = n => n.toLocaleString('es-AR');
+const iso = d => d.toISOString().slice(0,10);
+const dmy = s => s ? s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4) : '';
+const dm = s => s ? s.slice(8,10)+'/'+s.slice(5,7) : '';
+function goTo(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
+  $('titulo').textContent = v==='vPdv' ? 'Plan de Viaje — Gestión y Dashboard' : 'Bitácora — Gestión y Dashboard';
+  window.scrollTo(0,0);
+}
+function estCtrl(c){return `<span class="est" style="background:${CTRL_COLOR[c]||'#6b7280'}">${esc(c)}</span>`}
+
+// ===================== PERÍODO =====================
+function aplicarPreset(){
+  const p=fPreset.value, h=new Date(); let d=new Date(), a=new Date(h);
+  if(p==='custom') return;
+  if(p==='30'){d.setDate(h.getDate()-30)}
+  if(p==='semAnt'){const dw=(h.getDay()+6)%7; a=new Date(h); a.setDate(h.getDate()-dw-1); d=new Date(a); d.setDate(a.getDate()-6)}
+  if(p==='mes'){d=new Date(h.getFullYear(),h.getMonth(),1)}
+  if(p==='mesAnt'){d=new Date(h.getFullYear(),h.getMonth()-1,1); a=new Date(h.getFullYear(),h.getMonth(),0)}
+  if(p==='anio'){d=new Date(h.getFullYear(),0,1)}
+  fDesde.value=iso(d); fHasta.value=iso(a); cargar();
+}
+
+// ===================== CARGA =====================
+async function cargar(){
+  $('loader').style.display='flex';
+  try{
+    const r = await fetch(API_URL+'?'+new URLSearchParams({action:'pdv',desde:fDesde.value,hasta:fHasta.value}));
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error||'Error del servidor');
+    DATA = j.rows; META = j;
+    $('metaRango').textContent = `Período: ${dmy(j.desde)} al ${dmy(j.hasta)} · ${nf(DATA.length)} planes`;
+    $('metaCarga').textContent = `Último plan cargado en la base: ${dmy(j.ultimaCarga.slice(0,10))} ${j.ultimaCarga.slice(11)}`;
+    llenarCombos(); render();
+  }catch(e){mostrarToast(e.message,'err')}
+  finally{$('loader').style.display='none'}
+}
+function llenarCombos(){
+  const set=(sel,idx,todos)=>{const prev=sel.value;const vals=[...new Set(DATA.map(r=>r[idx]).filter(Boolean))].sort();
+    sel.innerHTML=`<option value="">${todos}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
+    if(vals.includes(prev)) sel.value=prev;};
+  set(fCond,I.COND,'Todos'); set(fInt,I.INT,'Todos'); set(fDest,I.DEST,'Todos');
+  const prev=fCtrl.value; fCtrl.innerHTML='<option value="">Todos</option>'+CTRL_ORDEN.map(c=>`<option>${c}</option>`).join(''); fCtrl.value=prev;
+}
+function filtrar(){
+  const c=fCond.value,i=fInt.value,d=fDest.value,k=fCtrl.value,p=fPart.value.trim().toLowerCase();
+  return DATA.filter(r=>(!c||r[I.COND]===c)&&(!i||r[I.INT]===i)&&(!d||r[I.DEST]===d)&&(!k||r[I.CTRL]===k)&&(!p||r[I.PART].toLowerCase().includes(p)));
+}
+
+// ===================== COMPONENTES =====================
+function pie(el, items, centro){
+  const tot=items.reduce((s,x)=>s+x.v,0);
+  if(!tot){$(el).innerHTML='<div class="vacio">Sin datos</div>';return}
+  let acc=0; const segs=items.filter(x=>x.v).map(x=>{const a=acc;acc+=x.v/tot*360;return `${x.c} ${a}deg ${acc}deg`});
+  $(el).innerHTML=`<div class="pie-wrap"><div class="pie" style="background:conic-gradient(${segs.join(',')})" data-c="${centro||''}"></div>
+    <div class="leg">${items.map(x=>`<div><i style="background:${x.c}"></i>${esc(x.l)}<span class="v">${nf(x.v)} · ${f1(pct(x.v,tot))}%</span></div>`).join('')}</div></div>`;
+}
+function leyendaCtrl(el){$(el).innerHTML=CTRL_ORDEN.map(c=>`<span><i style="background:${CTRL_COLOR[c]}"></i>${c}</span>`).join('')}
+function contar(rows, idx){const m={};rows.forEach(r=>{m[r[idx]]=(m[r[idx]]||0)+1});return m}
+const controlado = r => ['OK','OK C/OBS','NO'].includes(r[I.CTRL]);
+const okCtrl = r => r[I.CTRL]==='OK'||r[I.CTRL]==='OK C/OBS';
+function diasDesde(f){return Math.floor((Date.now()-new Date(f.replace(' ','T')).getTime())/864e5)}
+
+// Lista dual: tarjetas (mobile) + tabla (desktop)
+function lista(el, rows, cols, cardFn, limite){
+  const lim=limite||50; const st=$(el); st._rows=rows; st._lim=lim;
+  const pintar=()=>{
+    const r=rows.slice(0,st._lim);
+    if(!rows.length){st.innerHTML='<div class="vacio">Sin registros</div>';return}
+    st.innerHTML=`<div class="cards">${r.map(cardFn).join('')}</div>
+      <div class="tbl-scroll"><table class="tabla"><thead><tr>${cols.map(c=>`<th>${c.t}</th>`).join('')}</tr></thead>
+      <tbody>${r.map(x=>`<tr>${cols.map(c=>`<td>${c.f(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      ${rows.length>st._lim?`<div class="mas"><button class="btn sec" id="${el}_mas">Ver más (${nf(rows.length-st._lim)})</button></div>`:''}`;
+    const b=$(el+'_mas'); if(b) b.onclick=()=>{st._lim+=50;pintar()};
+  };
+  pintar();
+}
+
+// ===================== RENDER =====================
+function render(){
+  const R = FILTRADO = filtrar();
+  const n=R.length;
+  const conductores=new Set(R.map(r=>r[I.COND])).size;
+  const rsOk=R.filter(r=>r[I.RS]===1).length;
+  const ctrl=R.filter(controlado), ctrlOk=ctrl.filter(okCtrl).length;
+  const sinCtrl=R.filter(r=>r[I.CTRL]==='SIN CONTROL');
+  const sin7=sinCtrl.filter(r=>diasDesde(r[I.FECHA])>7).length;
+  const fv=ctrl.filter(r=>r[I.RS]===1&&r[I.CTRL]==='NO').length;
+  const fr=ctrl.filter(r=>r[I.RS]===0&&okCtrl(r)).length;
+  const noR=R.filter(r=>r[I.CTRL]==='NO'); const noDecl=noR.filter(r=>r[I.OBS]===1).length;
+  const okcobs=R.filter(r=>r[I.CTRL]==='OK C/OBS');
+  const okcPend=META.tieneValidacion?okcobs.filter(r=>!['VALIDADO','RECHAZADO'].includes(r[I.EST])).length:null;
+
+  // KPIs
+  const k=(cls,l,v,s)=>`<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${v}</div><div class="s">${s||''}</div></div>`;
+  $('kpis').innerHTML=
+    k('','PDV totales',nf(n),`${nf(new Set(R.map(r=>r[I.INT])).size)} internos`)+
+    k('','Conductores',nf(conductores),'')+
+    k('g','PDV cumplidos (RutaSky)',nf(rsOk),`${f1(pct(rsOk,n))}% del total`)+
+    k(pct(ctrlOk,ctrl.length)>=90?'g':pct(ctrlOk,ctrl.length)>=75?'a':'r','Cumplimiento por control',`${f1(pct(ctrlOk,ctrl.length))}%`,`${nf(ctrlOk)} OK de ${nf(ctrl.length)} controlados`)+
+    k(sinCtrl.length?'a':'g','Pendientes de control',nf(sinCtrl.length),`${nf(sin7)} con más de 7 días`)+
+    k(fv?'r':'g','Falsos verdes',nf(fv),`RutaSky OK / control NO · ${f1(pct(fv,ctrl.length))}%`)+
+    k(fr?'a':'g','Falsos rojos',nf(fr),`RutaSky NO / control OK · ${f1(pct(fr,ctrl.length))}%`)+
+    k('b','OK c/obs',nf(okcobs.length),okcPend===null?'validación no habilitada':`${nf(okcPend)} pendientes de validar`);
+
+  // Por conductor (barras 100% apiladas)
+  leyendaCtrl('leyCtrl1'); leyendaCtrl('leyCtrl2');
+  const porC={}; R.forEach(r=>{const c=r[I.COND];(porC[c]=porC[c]||{t:0})[r[I.CTRL]]=(porC[c][r[I.CTRL]]||0)+1;porC[c].t++});
+  const lc=Object.entries(porC).sort((a,b)=>b[1].t-a[1].t);
+  $('porConductor').innerHTML = lc.length ? lc.map(([c,o])=>`<div class="sb-row"><div class="nm" title="${esc(c)}">${esc(c)}</div>
+    <div class="sb-track">${CTRL_ORDEN.filter(k=>o[k]).map(k=>{const p=pct(o[k],o.t);return `<div style="width:${p}%;background:${CTRL_COLOR[k]}" title="${k}: ${o[k]} (${f1(p)}%)">${p>=12?f1(p)+'%':''}</div>`}).join('')}</div>
+    <div class="tt">${nf(o.t)}</div></div>`).join('') : '<div class="vacio">Sin datos</div>';
+
+  // Tortas
+  pie('pieRS',[{l:'Sí',v:rsOk,c:'#1D9E75'},{l:'No',v:n-rsOk,c:'#C00000'}],n?f1(pct(rsOk,n))+'%':'');
+  const cc=contar(R,I.CTRL);
+  pie('pieCtrl',CTRL_ORDEN.map(c=>({l:c,v:cc[c]||0,c:CTRL_COLOR[c]})),ctrl.length?f1(pct(ctrlOk,ctrl.length))+'%':'');
+  const mot={}; R.filter(r=>r[I.COM]).forEach(r=>{const m=r[I.COM].replace(/\s+/g,' ').trim();mot[m]=(mot[m]||0)+1});
+  const lm=Object.entries(mot).sort((a,b)=>b[1]-a[1]); const top=lm.slice(0,6); const otros=lm.slice(6).reduce((s,x)=>s+x[1],0);
+  pie('pieMot',[...top.map((x,i)=>({l:x[0],v:x[1],c:PALETA[i]})),...(otros?[{l:'Otros',v:otros,c:'#d1d5db'}]:[])],nf(lm.reduce((s,x)=>s+x[1],0)));
+
+  // Por día (columnas 100% apiladas)
+  const porD={}; R.forEach(r=>{const d=r[I.FECHA].slice(0,10);(porD[d]=porD[d]||{t:0})[r[I.CTRL]]=(porD[d][r[I.CTRL]]||0)+1;porD[d].t++});
+  const dias=Object.keys(porD).sort(); const paso=Math.max(1,Math.ceil(dias.length/(window.innerWidth<900?6:12)));
+  $('porDia').innerHTML = dias.length ? `<div class="cols">${dias.map(d=>{const o=porD[d];return `<div class="col" title="${dmy(d)} · ${o.t} planes\n${CTRL_ORDEN.filter(k=>o[k]).map(k=>k+': '+o[k]).join('\n')}">${CTRL_ORDEN.filter(k=>o[k]).map(k=>`<div style="height:${pct(o[k],o.t)}%;background:${CTRL_COLOR[k]}"></div>`).join('')}</div>`}).join('')}</div>
+    <div class="xlab">${dias.map((d,i)=>`<span>${i%paso===0?dm(d):''}</span>`).join('')}</div>` : '<div class="vacio">Sin datos</div>';
+
+  // Tendencia semanal
+  const sem={}; R.forEach(r=>{const d=new Date(r[I.FECHA].slice(0,10)+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));const k=iso(d);const o=(sem[k]=sem[k]||{n:0,rs:0,c:0,ok:0});o.n++;if(r[I.RS]===1)o.rs++;if(controlado(r)){o.c++;if(okCtrl(r))o.ok++}});
+  const ks=Object.keys(sem).sort();
+  if(ks.length<2){$('tendencia').innerHTML='<div class="vacio">Se necesitan al menos 2 semanas en el período</div>'}else{
+    const W=560,H=190,pl=30,pb=22,pt=10,pr=24; const x=i=>pl+i*(W-pl-pr)/(ks.length-1), y=v=>pt+(100-v)*(H-pt-pb)/100;
+    const s1=ks.map((k,i)=>`${x(i)},${y(pct(sem[k].rs,sem[k].n))}`).join(' ');
+    const ptsC=ks.map((k,i)=>sem[k].c?`${x(i)},${y(pct(sem[k].ok,sem[k].c))}`:null).filter(Boolean).join(' ');
+    const grid=[0,25,50,75,100].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="2" y="${y(v)+3}">${v}%</text>`).join('');
+    const pasoS=Math.max(1,Math.ceil(ks.length/8));
+    const xl=ks.map((k,i)=>i%pasoS===0?`<text x="${x(i)-12}" y="${H-6}">${dm(k)}</text>`:'').join('');
+    $('tendencia').innerHTML=`<div class="leyenda"><span><i style="background:#9ca3af"></i>% cumplido RutaSky</span><span><i style="background:#C00000"></i>% OK por control</span></div>
+      <svg class="svg-line" viewBox="0 0 ${W} ${H}" width="100%">${grid}${xl}
+      <polyline points="${s1}" fill="none" stroke="#9ca3af" stroke-width="2"/>
+      <polyline points="${ptsC}" fill="none" stroke="#C00000" stroke-width="2.5"/></svg>`;
+  }
+
+  // Matriz de confiabilidad
+  const m=(rs,ok)=>ctrl.filter(r=>r[I.RS]===rs&&okCtrl(r)===ok).length;
+  $('matriz').innerHTML = ctrl.length ? `<table class="mx"><tr><th></th><th>Control OK</th><th>Control NO</th></tr>
+    <tr><td class="h">RutaSky: cumplido</td><td class="ok">${nf(m(1,true))}</td><td class="bad">${nf(m(1,false))}<br><small>falso verde</small></td></tr>
+    <tr><td class="h">RutaSky: no cumplido</td><td class="bad" style="color:#E07B39;background:#fdf3e9">${nf(m(0,true))}<br><small>falso rojo</small></td><td class="ok">${nf(m(0,false))}</td></tr></table>
+    <div class="nota">Coincidencia RutaSky vs control: <b>${f1(pct(m(1,true)+m(0,false),ctrl.length))}%</b> de ${nf(ctrl.length)} planes controlados. NO con observación del chofer: <b>${f1(pct(noDecl,noR.length))}%</b> (${nf(noDecl)} de ${nf(noR.length)}).</div>` : '<div class="vacio">Sin planes controlados</div>';
+
+  // Backlog de control
+  const b02=sinCtrl.filter(r=>diasDesde(r[I.FECHA])<=2).length, b37=sinCtrl.filter(r=>{const d=diasDesde(r[I.FECHA]);return d>2&&d<=7}).length;
+  $('backlogSem').innerHTML=`<div class="semaforo"><div style="background:#1D9E75"><b>${nf(b02)}</b><small>0–2 días</small></div><div style="background:#EF9F27"><b>${nf(b37)}</b><small>3–7 días</small></div><div style="background:#C00000"><b>${nf(sin7)}</b><small>+7 días</small></div></div>`;
+  const bl=[...sinCtrl].sort((a,b)=>a[I.FECHA].localeCompare(b[I.FECHA]));
+  lista('backlog',bl,[{t:'Plan',f:r=>'#'+esc(r[I.ID])},{t:'Fecha',f:r=>dmy(r[I.FECHA])},{t:'Conductor',f:r=>esc(r[I.COND])},{t:'Días',f:r=>diasDesde(r[I.FECHA])}],
+    r=>`<div class="it" style="border-left-color:${diasDesde(r[I.FECHA])>7?'#C00000':'#EF9F27'}"><div class="t"><span>#${esc(r[I.ID])} · ${esc(r[I.INT])}</span><span>${diasDesde(r[I.FECHA])} d</span></div><div class="s">${dmy(r[I.FECHA])} · ${esc(r[I.COND])}</div></div>`,10);
+
+  // Reincidentes
+  const rc={}; noR.forEach(r=>{const o=(rc[r[I.COND]]=rc[r[I.COND]]||{no:0,ult:''});o.no++;if(r[I.FECHA]>o.ult)o.ult=r[I.FECHA]});
+  const tot=contar(R,I.COND);
+  const lr=Object.entries(rc).sort((a,b)=>b[1].no-a[1].no).slice(0,10); const maxNo=lr.length?lr[0][1].no:1;
+  $('reinc').innerHTML = lr.length ? lr.map(([c,o])=>`<div class="bar-item"><div class="lb"><span>${esc(c)}</span><span><b>${o.no}</b> NO · ${f1(pct(o.no,tot[c]))}% · últ. ${dm(o.ult)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct(o.no,maxNo)}%;background:#C00000"></div></div></div>`).join('') : '<div class="vacio">Sin NO en el período</div>';
+
+  // Destinos con más NO
+  const dn={}; R.forEach(r=>{const o=(dn[r[I.DEST]]=dn[r[I.DEST]]||{t:0,no:0});o.t++;if(r[I.CTRL]==='NO')o.no++});
+  const ld=Object.entries(dn).filter(x=>x[1].no).sort((a,b)=>b[1].no-a[1].no).slice(0,10); const maxD=ld.length?ld[0][1].no:1;
+  $('destNo').innerHTML = ld.length ? ld.map(([d,o])=>`<div class="bar-item"><div class="lb"><span>${esc(d)}</span><span><b>${o.no}</b> de ${o.t} · ${f1(pct(o.no,o.t))}%</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct(o.no,maxD)}%;background:#E07B39"></div></div></div>`).join('') : '<div class="vacio">Sin NO en el período</div>';
+
+  // Tablas copiadas del Looker
+  const conCom=R.filter(r=>r[I.COM]).sort((a,b)=>b[I.FECHA].localeCompare(a[I.FECHA]));
+  lista('tblComent',conCom,[{t:'Fecha PDV',f:r=>dmy(r[I.FECHA])},{t:'Plan',f:r=>'#'+esc(r[I.ID])},{t:'Conductor',f:r=>esc(r[I.COND])},{t:'Control',f:r=>estCtrl(r[I.CTRL])},{t:'Comentarios del control',f:r=>esc(r[I.COM])}],
+    r=>`<div class="it" style="border-left-color:${CTRL_COLOR[r[I.CTRL]]||'#6b7280'}"><div class="t"><span>${dmy(r[I.FECHA])} · #${esc(r[I.ID])}</span>${estCtrl(r[I.CTRL])}</div><div class="s">${esc(r[I.COND])}</div><div>${esc(r[I.COM])}</div></div>`);
+  const des=[...R].sort((a,b)=>b[I.FECHA].localeCompare(a[I.FECHA]));
+  lista('tblDest',des,[{t:'Fecha',f:r=>dmy(r[I.FECHA])+' '+r[I.FECHA].slice(11)},{t:'Conductor',f:r=>esc(r[I.COND])},{t:'Interno',f:r=>esc(r[I.INT])},{t:'Destino',f:r=>esc(r[I.DEST])},{t:'Control',f:r=>estCtrl(r[I.CTRL])}],
+    r=>`<div class="it" style="border-left-color:${CTRL_COLOR[r[I.CTRL]]||'#6b7280'}"><div class="t"><span>${dmy(r[I.FECHA])} ${r[I.FECHA].slice(11)}</span>${estCtrl(r[I.CTRL])}</div><div class="s">${esc(r[I.COND])} · ${esc(r[I.INT])}</div><div>→ ${esc(r[I.DEST])}</div></div>`);
+}
+
+// ===================== EXPORTAR =====================
+function exportarCSV(){
+  if(!FILTRADO.length) return mostrarToast('No hay filas para exportar','err');
+  const cab=['Id','Conductor','Interno','Fecha','Punto de partida','Destino','Cumplida RutaSky','Tiene observaciones','Observaciones','Control','Comentarios','Tipo detención','Estado validación'];
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const csv='﻿'+[cab.join(';'),...FILTRADO.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6]?'Sí':'No',r[7]?'Sí':'No',r[8],r[9],r[10],r[11],r[12]].map(q).join(';'))].join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`plan_de_viaje_${fDesde.value}_${fHasta.value}.csv`; a.click();
+}
+
+// ===================== INIT =====================
+aplicarPreset();
+</script>
+</body>
+</html>
