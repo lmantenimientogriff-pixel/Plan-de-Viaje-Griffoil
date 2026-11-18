@@ -136,6 +136,7 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
       <div style="align-self:end;display:flex;gap:6px"><button class="btn" onclick="cargar()">Actualizar</button><button class="btn sec" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
     </div>
   </div>
+  <div id="errBox" style="display:none;background:#fdecec;border:1px solid #C00000;border-left:5px solid #C00000;border-radius:6px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.5;word-break:break-all"></div>
   <div class="meta"><span id="metaRango"></span><span id="metaCarga"></span></div>
 
   <div class="kpis" id="kpis"></div>
@@ -193,7 +194,7 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 
 <script>
 // ===================== CONFIG =====================
-const API_URL = 'PEGAR_AQUI_URL_EXEC_DEL_APPS_SCRIPT';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzSJn-x-iY7IDaN3xk5NLJqhHiwLn8ahcbEG9Kwa5tMIBLZCn39pCeepUmHNIV1WmDEug/exec';
 
 // Índices de la fila compacta que devuelve el backend
 const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12};
@@ -235,18 +236,28 @@ function aplicarPreset(){
 
 // ===================== CARGA =====================
 async function cargar(){
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(API_URL.trim())){
+    mostrarError(`La URL del Apps Script no está bien configurada en el HTML.<br>Valor actual de <b>API_URL</b>: <code>${esc(API_URL)}</code><br>
+      Tiene que ser la URL de la implementación como aplicación web, con este formato:<br><code>https://script.google.com/macros/s/XXXXXXXX/exec</code>`);
+    return;
+  }
   $('loader').style.display='flex';
   try{
-    const r = await fetch(API_URL+'?'+new URLSearchParams({action:'pdv',desde:fDesde.value,hasta:fHasta.value}));
-    const j = await r.json();
+    const r = await fetch(API_URL.trim()+'?'+new URLSearchParams({action:'pdv',desde:fDesde.value,hasta:fHasta.value}));
+    const txt = await r.text();
+    let j; try{ j = JSON.parse(txt) }catch(_){
+      throw new Error(`El Apps Script no devolvió datos (HTTP ${r.status}). Revisá que esté implementado como "Aplicación web", con acceso "Cualquier usuario", y que se haya creado una versión nueva. Respuesta: ${txt.slice(0,120)}`);
+    }
+    $('errBox').style.display='none';
     if(!j.ok) throw new Error(j.error||'Error del servidor');
     DATA = j.rows; META = j;
     $('metaRango').textContent = `Período: ${dmy(j.desde)} al ${dmy(j.hasta)} · ${nf(DATA.length)} planes`;
     $('metaCarga').textContent = `Último plan cargado en la base: ${dmy(j.ultimaCarga.slice(0,10))} ${j.ultimaCarga.slice(11)}`;
     llenarCombos(); render();
-  }catch(e){mostrarToast(e.message,'err')}
+  }catch(e){mostrarError(esc(e.message))}
   finally{$('loader').style.display='none'}
 }
+function mostrarError(html){const b=$('errBox');b.innerHTML='<b>No se pudieron cargar los datos.</b><br>'+html;b.style.display='block';console.error(b.innerText)}
 function llenarCombos(){
   const set=(sel,idx,todos)=>{const prev=sel.value;const vals=[...new Set(DATA.map(r=>r[idx]).filter(Boolean))].sort();
     sel.innerHTML=`<option value="">${todos}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
