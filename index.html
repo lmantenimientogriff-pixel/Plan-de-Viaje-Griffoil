@@ -128,6 +128,25 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .tbl-ges{max-height:none}
 .wrap{white-space:normal;min-width:160px}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+.est-ctrl{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;white-space:nowrap;border:1px solid currentColor}
+.tr-click{cursor:pointer}.tr-click:hover td{background:#fff4f4!important}
+.tj-head{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.tj-head{grid-template-columns:1.2fr 1fr}}
+.tj-res{font-size:22px;font-weight:700;padding:10px 14px;border-radius:6px;color:#fff;display:inline-block}
+.alerta{background:#fff8e6;border-left:4px solid var(--A);padding:6px 10px;border-radius:4px;font-size:12px;margin-top:6px}
+.alerta.crit{background:#fdecec;border-left-color:var(--R);color:var(--R);font-weight:600}
+#mapa{height:380px;border-radius:6px;border:1px solid var(--BO)}
+.pin{width:24px;height:24px;border-radius:50%;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.val-box{border:2px solid var(--R);border-radius:6px;padding:14px}
+.val-box .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border-radius:4px;font-family:inherit;min-height:70px}
+.btn.g{background:var(--G)}.btn.r{background:var(--R)}
+.dl{display:grid;grid-template-columns:130px 1fr;gap:4px 10px;font-size:13px}
+.dl b{color:var(--GT);font-weight:600}
+</style>
 </head>
 <body>
 <header>
@@ -162,6 +181,7 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
       <div><label>Control</label><div class="ms" id="ms_ctrl"></div></div>
       <div><label>Cumplido RutaSky</label><div class="ms" id="ms_rs"></div></div>
       <div><label>Motivo</label><div class="ms" id="ms_mot"></div></div>
+      <div><label>Estado control</label><div class="ms" id="ms_estc"></div></div>
       <div><label>Punto de partida</label><input id="fPart" placeholder="Contiene…" oninput="render()"></div>
       <div><label>Buscar</label><input id="fTxt" placeholder="Id, observación…" oninput="render()"></div>
       <div style="align-self:end;display:flex;gap:6px"><button class="btn sec" onclick="limpiarFiltros()">Limpiar</button><button class="btn sec" onclick="recargar()" title="Volver a leer la planilla">↻</button><button class="btn" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
@@ -218,6 +238,12 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
   </div>
 </section>
 
+<!-- ================= TARJETA DEL VIAJE ================= -->
+<section class="view" id="vCard">
+  <div style="margin-bottom:10px"><button class="btn sec" onclick="goTo('vGes')">‹ Volver a Gestión</button></div>
+  <div id="tjBody"><div class="vacio">Cargando…</div></div>
+</section>
+
 <!-- ================= BITÁCORA ================= -->
 <section class="view" id="vBit">
   <div class="card">
@@ -240,7 +266,9 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSJn-x-iY7IDaN3xk5NLJqhHiwLn8ahcbEG9Kwa5tMIBLZCn39pCeepUmHNIV1WmDEug/exec';
 
 // Índices de la fila compacta que devuelve el backend
-const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12};
+const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15};
+const EST_COLOR = {'OK AUTOMÁTICO':'#1D9E75','PENDIENTE SEGURIDAD':'#C00000','VALIDADO':'#378ADD','MODIFICADO Y VALIDADO':'#6b21a8'};
+function estControl(e){return e?`<span class="est-ctrl" style="color:${EST_COLOR[e]||'#6b7280'}">${esc(e)}</span>`:''}
 const CTRL_ORDEN = ['OK','OK C/OBS','NO','N/A','SIN CONTROL'];
 const CTRL_COLOR = {'OK':'#1D9E75','OK C/OBS':'#378ADD','NO':'#C00000','N/A':'#9ca3af','SIN CONTROL':'#EF9F27'};
 const PALETA = ['#C00000','#378ADD','#EF9F27','#1D9E75','#E07B39','#6b7280','#1a1a1a'];
@@ -260,8 +288,9 @@ const dm = s => s ? s.slice(8,10)+'/'+s.slice(5,7) : '';
 function goTo(v){
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
-  $('barFiltros').style.display = v==='vBit' ? 'none' : 'block';
-  $('titulo').textContent = {vDash:'Plan de Viaje — Dashboard',vGes:'Plan de Viaje — Gestión',vBit:'Bitácora'}[v];
+  $('barFiltros').style.display = (v==='vBit'||v==='vCard') ? 'none' : 'block';
+  $('titulo').textContent = {vDash:'Plan de Viaje — Dashboard',vGes:'Plan de Viaje — Gestión',vBit:'Bitácora',vCard:'Plan de Viaje — Tarjeta del viaje'}[v];
+  if(v==='vCard') document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.v==='vGes'));
   window.scrollTo(0,0);
 }
 function estCtrl(c){return `<span class="est" style="background:${CTRL_COLOR[c]||'#6b7280'}">${esc(c)}</span>`}
@@ -273,7 +302,8 @@ const MS = {
   dest:{lab:'Destino',          get:r=>r[I.DEST]},
   ctrl:{lab:'Control',          get:r=>r[I.CTRL], orden:CTRL_ORDEN},
   rs:  {lab:'Cumplido RutaSky', get:r=>r[I.RS]?'Sí':'No', orden:['Sí','No']},
-  mot: {lab:'Motivo',           get:r=>r[I.COM]?r[I.COM].replace(/\s+/g,' ').trim():'(sin motivo)'}
+  mot: {lab:'Motivo',           get:r=>r[I.COM]?r[I.COM].replace(/\s+/g,' ').trim():'(sin motivo)'},
+  estc:{lab:'Estado control',   get:r=>r[I.EST]||'(sin control satelital)', orden:['PENDIENTE SEGURIDAD','OK AUTOMÁTICO','VALIDADO','MODIFICADO Y VALIDADO','(sin control satelital)']}
 };
 Object.values(MS).forEach(m=>m.sel=new Set());
 
@@ -399,8 +429,9 @@ const GCOLS=[
   {k:'obs',  t:'Observación chofer',v:r=>r[I.OBSTXT],f:r=>`<div class="wrap">${esc(r[I.OBSTXT])}</div>`},
   {k:'ctrl', t:'Control',        v:r=>CTRL_ORDEN.indexOf(r[I.CTRL]), f:r=>estCtrl(r[I.CTRL])},
   {k:'com',  t:'Comentarios',    v:r=>r[I.COM],    f:r=>`<div class="wrap">${esc(r[I.COM])}</div>`},
-  {k:'tipo', t:'Tipo detención', v:r=>r[I.TIPO],   f:r=>esc(r[I.TIPO]), val:true},
-  {k:'est',  t:'Estado validación',v:r=>r[I.EST],  f:r=>esc(r[I.EST]),  val:true}
+  {k:'res',  t:'Control satelital', v:r=>r[I.RES], f:r=>r[I.RES]?estCtrl(r[I.RES]):'<span style="color:#9ca3af">—</span>', val:true},
+  {k:'est',  t:'Estado', v:r=>r[I.EST],  f:r=>estControl(r[I.EST]), val:true},
+  {k:'tipo', t:'Tipo detención', v:r=>r[I.TIPO],   f:r=>`<div class="wrap">${esc(r[I.TIPO])}</div>`, val:true}
 ];
 function ordenarGes(k){ if(SORT.col===k) SORT.dir*=-1; else {SORT.col=k; SORT.dir=(k==='fecha'||k==='id')?-1:1;} GES_LIM=100; renderGes(); }
 function filasGestion(){
@@ -418,14 +449,14 @@ function renderGes(){
   const c=GCOLS.find(x=>x.k===SORT.col);
   $('gesInfo').innerHTML=`<b>${nf(rows.length)}</b> planes · orden: <b>${c.t} ${SORT.dir<0?'↓':'↑'}</b> (tocá un encabezado para cambiarlo)`;
   if(!rows.length){$('tblGes').innerHTML='<div class="vacio">Sin planes para los filtros aplicados</div>';return}
-  const card=r=>`<div class="it" style="border-left-color:${CTRL_COLOR[r[I.CTRL]]||'#6b7280'}">
+  const card=r=>`<div class="it" onclick="abrirTarjeta('${esc(r[I.ID])}')" style="cursor:pointer;border-left-color:${CTRL_COLOR[r[I.CTRL]]||'#6b7280'}">
     <div class="t"><span>#${esc(r[I.ID])} · ${dmy(r[I.FECHA])} ${r[I.FECHA].slice(11)}</span>${estCtrl(r[I.CTRL])}</div>
     <div class="s">${esc(r[I.COND])} · ${esc(r[I.INT])} · RutaSky: ${r[I.RS]?'Sí':'No'}</div>
     <div>${esc(r[I.PART])} → <b>${esc(r[I.DEST])}</b></div>
     ${r[I.OBSTXT]?`<div class="s"><i>"${esc(r[I.OBSTXT])}"</i></div>`:''}${r[I.COM]?`<div class="s" style="color:#C00000">${esc(r[I.COM])}</div>`:''}</div>`;
   $('tblGes').innerHTML=`<div class="cards">${vis.map(card).join('')}</div>
     <div class="tbl-scroll tbl-ges"><table class="tabla"><thead><tr>${cols.map(x=>`<th class="sort" onclick="ordenarGes('${x.k}')">${x.t}${SORT.col===x.k?(SORT.dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead>
-    <tbody>${vis.map(r=>`<tr>${cols.map(x=>`<td>${x.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <tbody>${vis.map(r=>`<tr class="tr-click" onclick="abrirTarjeta('${esc(r[I.ID])}')" title="Ver tarjeta del viaje">${cols.map(x=>`<td>${x.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     ${rows.length>GES_LIM?`<div class="mas"><button class="btn sec" onclick="GES_LIM+=200;renderGes()">Ver más (${nf(rows.length-GES_LIM)} restantes)</button></div>`:''}`;
 }
 
@@ -473,7 +504,7 @@ function render(){
   const fr=ctrl.filter(r=>r[I.RS]===0&&okCtrl(r)).length;
   const noR=R.filter(r=>r[I.CTRL]==='NO'); const noDecl=noR.filter(r=>r[I.OBS]===1).length;
   const okcobs=R.filter(r=>r[I.CTRL]==='OK C/OBS');
-  const okcPend=META.tieneValidacion?okcobs.filter(r=>!['VALIDADO','RECHAZADO'].includes(r[I.EST])).length:null;
+  const pendSeg=R.filter(r=>r[I.EST]==='PENDIENTE SEGURIDAD').length, okAuto=R.filter(r=>r[I.EST]==='OK AUTOMÁTICO').length;
 
   // KPIs
   const k=(cls,l,v,s)=>`<div class="kpi ${cls}"><div class="l">${l}</div><div class="n">${v}</div><div class="s">${s||''}</div></div>`;
@@ -485,7 +516,7 @@ function render(){
     k(sinCtrl.length?'a':'g','Pendientes de control',nf(sinCtrl.length),`${nf(sin7)} con más de 7 días`)+
     k(fv?'r':'g','Falsos verdes',nf(fv),`RutaSky OK / control NO · ${f1(pct(fv,ctrl.length))}%`)+
     k(fr?'a':'g','Falsos rojos',nf(fr),`RutaSky NO / control OK · ${f1(pct(fr,ctrl.length))}%`)+
-    k('b','OK c/obs',nf(okcobs.length),okcPend===null?'validación no habilitada':`${nf(okcPend)} pendientes de validar`);
+    k(pendSeg?'r':'g','Pendientes de Seguridad',nf(pendSeg),`${nf(okAuto)} OK automáticos (satelital)`);
 
   // Por conductor (barras 100% apiladas)
   leyendaCtrl('leyCtrl1'); leyendaCtrl('leyCtrl2');
@@ -570,6 +601,116 @@ function exportarCSV(){
   const csv='﻿'+[cab.join(';'),...filasGestion().map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6]?'Sí':'No',r[7]?'Sí':'No',r[8],r[9],r[10],r[11],r[12]].map(q).join(';'))].join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download=`plan_de_viaje_${fDesde.value}_${fHasta.value}.csv`; a.click();
+}
+
+
+// ===================== TARJETA DEL VIAJE =====================
+let TJ=null, USUARIOS=null, MAPA=null;
+const RES_COLOR={'Cumple':'#1D9E75','Cumple c/obs':'#378ADD','No cumple':'#C00000','Ignorada (< 5 min)':'#9ca3af'};
+const MOTIVOS_NO=['HACE DETENCION NO PROGRAMADA','DETENCION NO COINCIDE CON PLAN DE VIAJE','HACE DETENCION NO PROGRAMADA / DETENCION NO COINCIDE CON PLAN DE VIAJE'];
+const MOTIVOS_OBS=['OK C/OBS: Cambio operativo de carga (Logística)','OK C/OBS: Fuerza mayor / seguridad vial','OK C/OBS: Falla mecánica / control técnico','OK C/OBS: Descanso por fatiga','OK C/OBS: Sanitaria (≤ 20 min)','OK C/OBS: Comida / descanso fuera de parada planificada','OK C/OBS: Uso de hora 11 / jornada (autorizado)'];
+async function abrirTarjeta(id){
+  goTo('vCard'); $('tjBody').innerHTML='<div class="vacio">Cargando tarjeta del plan #'+esc(id)+'…</div>';
+  try{
+    const [t,u]=await Promise.all([
+      fetch(API_URL+'?'+new URLSearchParams({action:'tarjeta',id})).then(r=>r.json()),
+      USUARIOS?Promise.resolve({ok:true,items:USUARIOS}):fetch(API_URL+'?action=usuarios').then(r=>r.json())
+    ]);
+    if(!t.ok) throw new Error(t.error); USUARIOS=u.items||[]; TJ=t; renderTarjeta();
+  }catch(e){$('tjBody').innerHTML=`<div class="card" style="color:#C00000">No se pudo abrir la tarjeta: ${esc(e.message)}</div>`}
+}
+function renderTarjeta(){
+  const p=TJ.plan, c=TJ.control, et=TJ.etapas||[];
+  const resColor=r=>({'OK':'#1D9E75','OK C/OBS':'#378ADD','NO':'#C00000'}[r]||'#6b7280');
+  const alertas=c&&c.alertas?c.alertas.split(' || ').filter(Boolean):[];
+  const dl=(k,v)=>`<b>${k}</b><span>${v||'—'}</span>`;
+  const pend=c&&c.estado==='PENDIENTE SEGURIDAD';
+  $('tjBody').innerHTML=`
+  <div class="card"><div class="tj-head">
+    <div>
+      <h2 style="font-size:16px">Plan de viaje #${esc(p[I.ID])} <small>${dmy(p[I.FECHA])} ${p[I.FECHA].slice(11)}</small></h2>
+      <div class="dl">${dl('Conductor',esc(p[I.COND]))}${dl('Interno',esc(p[I.INT]))}${dl('Partida',esc(p[I.PART]))}${dl('Destino','<b>'+esc(p[I.DEST])+'</b>')}
+        ${dl('RutaSky',p[I.RS]?'Cumplido':'No cumplido')}${dl('Obs. chofer',p[I.OBSTXT]?'<i>"'+esc(p[I.OBSTXT])+'"</i>':'—')}
+        ${dl('Control en base',estCtrl(p[I.CTRL])+(p[I.COM]?' '+esc(p[I.COM]):''))}</div>
+    </div>
+    <div>${c?`
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Resultado control satelital</div>
+      <div class="tj-res" style="background:${resColor(c.resultado)}">${esc(c.resultado)}</div> ${estControl(c.estado)}
+      <div style="margin-top:8px;font-size:13px">${esc(c.motivo||'Sin desvíos')}</div>
+      ${c.tipo?`<div style="font-size:12px;color:#6b7280">Tipo: ${esc(c.tipo)}</div>`:''}
+      <div style="font-size:12px;color:#6b7280;margin-top:4px">Detenciones: ${c.nDet} · no cumplidas: ${c.nNo} · descanso intermedio: ${c.descanso} min · Controlado por ${esc(c.controladoPor)} el ${esc(c.fechaControl)}</div>
+      ${alertas.map(a=>`<div class="alerta ${/CRÍTICA/.test(a)?'crit':''}">${esc(a)}</div>`).join('')}`
+      :'<div class="vacio">Este plan todavía no tiene control satelital.</div>'}
+    </div></div></div>
+  ${c&&c.recorrido?`<div class="card"><h2>Recorrido y detenciones <small>trayecto real según satelital</small></h2><div id="mapa"></div>
+    <div class="leyenda" style="margin-top:8px"><span><i style="background:#1D9E75"></i>Cumple</span><span><i style="background:#378ADD"></i>Cumple c/obs</span><span><i style="background:#C00000"></i>No cumple</span><span><i style="background:#9ca3af"></i>Ignorada (&lt; 5 min)</span></div></div>`:''}
+  <div class="card"><h2>Etapas del viaje</h2>${et.length?`
+    <div class="cards">${et.map(e=>`<div class="it" style="border-left-color:${RES_COLOR[e.res]||'#6b7280'}"><div class="t"><span>${e.n}. ${esc(e.tipo)}</span><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></div>
+      <div class="s">${esc(e.ini)} · ${e.dur} min ${e.pl?'· planificado '+esc(e.pl)+' / '+esc(e.pdur):''}</div><div>${esc(e.lugar)}</div>${e.geo?`<div class="s">Geocerca: ${esc(e.geo)}</div>`:''}
+      ${e.mot?`<div class="s" style="color:#C00000">${esc(e.mot)}</div>`:''}${e.link?`<a href="${e.link}" target="_blank">Ver en mapa ↗</a>`:''}</div>`).join('')}</div>
+    <div class="tbl-scroll"><table class="tabla"><thead><tr><th>N°</th><th>Llegada</th><th>Min</th><th>Planificado</th><th>Lugar (satelital)</th><th>Geocerca</th><th>Tipo</th><th>Resultado</th><th>Motivo</th><th></th></tr></thead><tbody>
+    ${et.map(e=>`<tr><td>${e.n}</td><td>${esc(e.ini)}</td><td>${e.dur}</td><td>${e.pl?esc(e.pl)+' / '+esc(e.pdur):'—'}</td><td><div class="wrap">${esc(e.lugar)}</div></td><td><div class="wrap">${esc(e.geo)}</div></td><td>${esc(e.tipo)}</td>
+      <td><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></td><td><div class="wrap">${esc(e.mot)}</div></td><td>${e.link?`<a href="${e.link}" target="_blank" onclick="event.stopPropagation()">Mapa ↗</a>`:''}</td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="vacio">Sin etapas registradas</div>'}</div>
+  ${c?renderValidacion(c,pend):''}`;
+  if(c&&c.recorrido) setTimeout(()=>dibujarMapa(c.recorrido,et),50);
+}
+function renderValidacion(c,pend){
+  if(!pend){
+    if(c.estado==='OK AUTOMÁTICO') return `<div class="card"><h2>Validación</h2><div class="nota">Control satelital sin desvíos: queda como <b>OK automático</b>, no requiere validación de Seguridad.</div></div>`;
+    return `<div class="card"><h2>Validación de Seguridad</h2><div class="dl">${['Estado',estControl(c.estado)].length?'':''}<b>Estado</b><span>${estControl(c.estado)}</span><b>Validado por</b><span>${esc(c.validadoPor)}</span><b>Fecha</b><span>${esc(c.fechaVal)}</span><b>Control final</b><span>${estCtrl(c.controlFinal)}</span><b>Motivo final</b><span>${esc(c.motivoFinal)||'—'}</span><b>Observación</b><span>${esc(c.obsSeg)||'—'}</span></div></div>`;
+  }
+  const opts=USUARIOS.map(u=>`<option>${esc(u.nombre)}</option>`).join('');
+  return `<div class="card val-box"><h2>Validación de Seguridad <small>el resultado propuesto queda pendiente hasta que Seguridad lo valide</small></h2>
+    <div class="row2"><div><label>Usuario</label><select id="vUsr"><option value="">Seleccionar…</option>${opts}</select></div><div><label>PIN</label><input id="vPin" type="password" inputmode="numeric" autocomplete="off"></div></div>
+    <div id="vMod" style="display:none">
+      <div class="row2"><div><label>Control final</label><select id="vCtrl" onchange="motivosMod()"><option>NO</option><option>OK C/OBS</option><option>OK</option></select></div>
+      <div><label>Motivo</label><select id="vMot"></select></div></div>
+    </div>
+    <div style="margin-bottom:10px"><label>Observación de Seguridad <span id="vObsReq" style="display:none;color:#C00000">(obligatoria al modificar)</span></label><textarea id="vObs" placeholder="Evidencia revisada, descargo del chofer, autorización, etc."></textarea></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn g" id="bVal" onclick="enviarValidacion('VALIDAR')">✓ Validar resultado propuesto (${esc(c.resultado)})</button>
+      <button class="btn r" id="bMod" onclick="modoModificar()">✎ Modificar control</button>
+    </div></div>`;
+}
+function modoModificar(){
+  if($('vMod').style.display==='none'){ $('vMod').style.display='block'; $('vObsReq').style.display='inline'; $('bMod').textContent='✓ Guardar modificación y validar'; $('bVal').style.display='none';
+    $('vCtrl').value=TJ.control.resultado||'NO'; motivosMod(); return; }
+  enviarValidacion('MODIFICAR');
+}
+function motivosMod(){
+  const c=$('vCtrl').value; const l=c==='NO'?MOTIVOS_NO:c==='OK C/OBS'?MOTIVOS_OBS:['(sin motivo)'];
+  $('vMot').innerHTML=l.map(m=>`<option>${esc(m)}</option>`).join('');
+  const prop=TJ.control.motivo; if(l.includes(prop)) $('vMot').value=prop;
+}
+async function enviarValidacion(accion){
+  const usuario=$('vUsr').value, pin=$('vPin').value.trim(), obs=$('vObs').value.trim();
+  if(!usuario) return mostrarToast('Seleccioná el usuario','err');
+  if(!pin) return mostrarToast('Ingresá el PIN','err');
+  const params={action:'validar',id:TJ.plan[I.ID],usuario,pin,accion,obs};
+  if(accion==='MODIFICAR'){ if(!obs) return mostrarToast('La observación es obligatoria al modificar','err'); params.control=$('vCtrl').value; params.motivo=$('vMot').value==='(sin motivo)'?'':$('vMot').value; }
+  $('loader').style.display='flex';
+  try{
+    const j=await fetch(API_URL+'?'+new URLSearchParams(params)).then(r=>r.json());
+    if(!j.ok) throw new Error(j.error);
+    TJ=j; renderTarjeta(); mostrarToast(accion==='VALIDAR'?'Control validado':'Control modificado y validado','ok');
+    const r=DATA.find(x=>x[I.ID]===j.plan[I.ID]); if(r){ r[I.CTRL]=j.plan[I.CTRL]; r[I.COM]=j.plan[I.COM]; r[I.EST]=j.plan[I.EST]; render(); }
+  }catch(e){mostrarToast(e.message,'err')}
+  finally{$('loader').style.display='none'}
+}
+function dibujarMapa(rec,et){
+  if(typeof L==='undefined'){ $('mapa').innerHTML='<div class="vacio">No se pudo cargar el mapa (sin conexión a OpenStreetMap)</div>'; return; }
+  if(MAPA){MAPA.remove(); MAPA=null;}
+  MAPA=L.map('mapa'); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(MAPA);
+  const pts=rec.split(';').map(s=>s.split(',').map(Number)).filter(p=>p.length===2&&!isNaN(p[0]));
+  const linea=L.polyline(pts,{color:'#1a1a1a',weight:3,opacity:.75}).addTo(MAPA);
+  if(pts.length){ L.circleMarker(pts[0],{radius:7,color:'#1a1a1a',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(MAPA).bindTooltip('Partida'); }
+  const grupo=[linea];
+  et.forEach(e=>{ if(!e.lat) return; const col=RES_COLOR[e.res]||'#6b7280';
+    const m=L.marker([e.lat,e.lng],{icon:L.divIcon({className:'',html:`<div class="pin" style="background:${col}">${e.n}</div>`,iconSize:[24,24],iconAnchor:[12,12]})}).addTo(MAPA)
+      .bindPopup(`<b>${e.n}. ${esc(e.tipo)}</b><br>${esc(e.ini)} · ${e.dur} min<br>${esc(e.lugar)}<br><b style="color:${col}">${esc(e.res)}</b>${e.mot?'<br>'+esc(e.mot):''}<br><a href="${e.link}" target="_blank">Abrir en Google Maps</a>`);
+    grupo.push(m); });
+  MAPA.fitBounds(L.featureGroup(grupo).getBounds().pad(0.08));
 }
 
 // ===================== INIT =====================
