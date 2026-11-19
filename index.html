@@ -606,7 +606,8 @@ function exportarCSV(){
 
 // ===================== TARJETA DEL VIAJE =====================
 let TJ=null, USUARIOS=null, MAPA=null;
-const RES_COLOR={'Cumple':'#1D9E75','Cumple c/obs':'#378ADD','No cumple':'#C00000','Ignorada (< 5 min)':'#9ca3af'};
+const hmm=m=>{ if(m===''||m==null||isNaN(+m)) return ''; m=+m; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+const RES_COLOR={'Cumple':'#1D9E75','Cumple c/obs':'#378ADD','No cumple':'#C00000','Ignorada (< 5 min)':'#9ca3af','No considerada':'#9ca3af','No realizada':'#EF9F27'};
 const MOTIVOS_NO=['HACE DETENCION NO PROGRAMADA','DETENCION NO COINCIDE CON PLAN DE VIAJE','HACE DETENCION NO PROGRAMADA / DETENCION NO COINCIDE CON PLAN DE VIAJE'];
 const MOTIVOS_OBS=['OK C/OBS: Cambio operativo de carga (Logística)','OK C/OBS: Fuerza mayor / seguridad vial','OK C/OBS: Falla mecánica / control técnico','OK C/OBS: Descanso por fatiga','OK C/OBS: Sanitaria (≤ 20 min)','OK C/OBS: Comida / descanso fuera de parada planificada','OK C/OBS: Uso de hora 11 / jornada (autorizado)'];
 async function abrirTarjeta(id){
@@ -643,14 +644,16 @@ function renderTarjeta(){
       :'<div class="vacio">Este plan todavía no tiene control satelital.</div>'}
     </div></div></div>
   ${c&&c.recorrido?`<div class="card"><h2>Recorrido y detenciones <small>trayecto real según satelital</small></h2><div id="mapa"></div>
-    <div class="leyenda" style="margin-top:8px"><span><i style="background:#1D9E75"></i>Cumple</span><span><i style="background:#378ADD"></i>Cumple c/obs</span><span><i style="background:#C00000"></i>No cumple</span><span><i style="background:#9ca3af"></i>Ignorada (&lt; 5 min)</span></div></div>`:''}
+    <div class="leyenda" style="margin-top:8px"><span><i style="background:#1D9E75"></i>Cumple</span><span><i style="background:#378ADD"></i>Cumple c/obs</span><span><i style="background:#C00000"></i>No cumple</span><span><i style="background:#9ca3af"></i>Ignorada / no considerada</span><span><i style="background:#EF9F27"></i>Planificada no realizada</span></div></div>`:''}
   <div class="card"><h2>Etapas del viaje</h2>${et.length?`
     <div class="cards">${et.map(e=>`<div class="it" style="border-left-color:${RES_COLOR[e.res]||'#6b7280'}"><div class="t"><span>${e.n}. ${esc(e.tipo)}</span><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></div>
-      <div class="s">${esc(e.ini)} · ${e.dur} min ${e.pl?'· planificado '+esc(e.pl)+' / '+esc(e.pdur):''}</div><div>${esc(e.lugar)}</div>${e.geo?`<div class="s">Geocerca: ${esc(e.geo)}</div>`:''}
+      ${e.mini?`<div class="s">Marcha: ${esc(e.mini)} → ${esc(e.ini)} · ${esc(e.marcha||'—')} h · ${e.km!==''&&e.km!=null?e.km+' km':'—'} · vel. máx ${e.vmax!==''&&e.vmax!=null?e.vmax+' km/h':'—'}</div>`:''}
+      <div class="s">${e.ini?'Llegada '+esc(e.ini)+(hmm(e.dur)?' · detenido '+hmm(e.dur):''):'Sin llegada satelital'}${e.pl?' · planificado '+esc(e.pl)+' / '+esc(e.pdur):''}</div><div>${esc(e.lugar)}</div>${e.geo?`<div class="s">Geocerca: ${esc(e.geo)}</div>`:''}
       ${e.mot?`<div class="s" style="color:#C00000">${esc(e.mot)}</div>`:''}${e.link?`<a href="${e.link}" target="_blank">Ver en mapa ↗</a>`:''}</div>`).join('')}</div>
-    <div class="tbl-scroll"><table class="tabla"><thead><tr><th>N°</th><th>Llegada</th><th>Min</th><th>Planificado</th><th>Lugar (satelital)</th><th>Geocerca</th><th>Tipo</th><th>Resultado</th><th>Motivo</th><th></th></tr></thead><tbody>
-    ${et.map(e=>`<tr><td>${e.n}</td><td>${esc(e.ini)}</td><td>${e.dur}</td><td>${e.pl?esc(e.pl)+' / '+esc(e.pdur):'—'}</td><td><div class="wrap">${esc(e.lugar)}</div></td><td><div class="wrap">${esc(e.geo)}</div></td><td>${esc(e.tipo)}</td>
-      <td><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></td><td><div class="wrap">${esc(e.mot)}</div></td><td>${e.link?`<a href="${e.link}" target="_blank" onclick="event.stopPropagation()">Mapa ↗</a>`:''}</td></tr>`).join('')}
+    <div class="tbl-scroll"><table class="tabla"><thead><tr><th>#</th><th>Inicio</th><th>T. Marcha<br>H:M</th><th>Kms<br>recorridos</th><th>Vel. máx</th><th>Fin</th><th>Detenido<br>H:M</th><th>Lugar llegada</th><th>Geocerca</th><th>Planificado<br>llegada / dur.</th><th>Tipo</th><th>Motivo</th><th>Resultado</th></tr></thead><tbody>
+    ${et.map(e=>`<tr><td>${e.n}</td><td>${e.mini?esc(e.mini):'—'}</td><td>${e.marcha?esc(e.marcha):'—'}</td><td>${e.km!==''&&e.km!=null?e.km:'—'}</td><td>${e.vmax!==''&&e.vmax!=null?e.vmax:'—'}</td>
+      <td>${e.ini?esc(e.ini):'—'}</td><td>${hmm(e.dur)||'—'}</td><td><div class="wrap">${esc(e.lugar)}${e.link?` <a href="${e.link}" target="_blank" onclick="event.stopPropagation()">Mapa ↗</a>`:''}</div></td><td><div class="wrap">${esc(e.geo)}</div></td>
+      <td>${e.pl?esc(e.pl)+' / '+esc(e.pdur):'—'}</td><td>${esc(e.tipo)}</td><td><div class="wrap">${esc(e.mot)}</div></td><td><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></td></tr>`).join('')}
     </tbody></table></div>`:'<div class="vacio">Sin etapas registradas</div>'}</div>
   ${c?renderValidacion(c,pend):''}`;
   if(c&&c.recorrido) setTimeout(()=>dibujarMapa(c.recorrido,et),50);
@@ -708,7 +711,7 @@ function dibujarMapa(rec,et){
   const grupo=[linea];
   et.forEach(e=>{ if(!e.lat) return; const col=RES_COLOR[e.res]||'#6b7280';
     const m=L.marker([e.lat,e.lng],{icon:L.divIcon({className:'',html:`<div class="pin" style="background:${col}">${e.n}</div>`,iconSize:[24,24],iconAnchor:[12,12]})}).addTo(MAPA)
-      .bindPopup(`<b>${e.n}. ${esc(e.tipo)}</b><br>${esc(e.ini)} · ${e.dur} min<br>${esc(e.lugar)}<br><b style="color:${col}">${esc(e.res)}</b>${e.mot?'<br>'+esc(e.mot):''}<br><a href="${e.link}" target="_blank">Abrir en Google Maps</a>`);
+      .bindPopup(`<b>${e.n}. ${esc(e.tipo)}</b><br>${e.ini?'Llegada '+esc(e.ini)+(hmm(e.dur)?' · detenido '+hmm(e.dur):''):'Planificada '+esc(e.pl||'')+' — no realizada'}<br>${esc(e.lugar)}<br><b style="color:${col}">${esc(e.res)}</b>${e.mot?'<br>'+esc(e.mot):''}<br><a href="${e.link}" target="_blank">Abrir en Google Maps</a>`);
     grupo.push(m); });
   MAPA.fitBounds(L.featureGroup(grupo).getBounds().pad(0.08));
 }
