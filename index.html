@@ -127,6 +127,7 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .ges-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
 .tbl-ges{max-height:none}
 .wrap{white-space:normal;min-width:160px}
+.pl-cab{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:10px;font-size:13px}.pl-cab b{display:block;color:var(--GT);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -645,6 +646,7 @@ function renderTarjeta(){
     </div></div></div>
   ${c&&c.recorrido?`<div class="card"><h2>Recorrido y detenciones <small>trayecto real según satelital</small></h2><div id="mapa"></div>
     <div class="leyenda" style="margin-top:8px"><span><i style="background:#1D9E75"></i>Cumple</span><span><i style="background:#378ADD"></i>Cumple c/obs</span><span><i style="background:#C00000"></i>No cumple</span><span><i style="background:#9ca3af"></i>Ignorada / no considerada</span><span><i style="background:#EF9F27"></i>Planificada no realizada</span></div></div>`:''}
+  ${renderPlanificado(TJ.planificado)}
   <div class="card"><h2>Etapas del viaje</h2>${et.length?`
     <div class="cards">${et.map(e=>`<div class="it" style="border-left-color:${RES_COLOR[e.res]||'#6b7280'}"><div class="t"><span>${e.n}. ${esc(e.tipo)}</span><span class="est" style="background:${RES_COLOR[e.res]||'#6b7280'}">${esc(e.res)}</span></div>
       ${e.mini?`<div class="s">Marcha: ${esc(e.mini)} → ${esc(e.ini)} · ${esc(e.marcha||'—')} h · ${e.km!==''&&e.km!=null?e.km+' km':'—'} · vel. máx ${e.vmax!==''&&e.vmax!=null?e.vmax+' km/h':'—'}</div>`:''}
@@ -657,6 +659,18 @@ function renderTarjeta(){
     </tbody></table></div>`:'<div class="vacio">Sin etapas registradas</div>'}</div>
   ${c?renderValidacion(c,pend):''}`;
   if(c&&c.recorrido) setTimeout(()=>dibujarMapa(c.recorrido,et),50);
+}
+function renderPlanificado(pl){
+  if(!pl||(!pl.cab&&!(pl.paradas||[]).length)) return `<div class="card"><h2>Plan de viaje <small>lo que planificó el chofer en RutaSky</small></h2><div class="vacio">Sin datos del plan cargado</div></div>`;
+  const cb=pl.cab||{}, ps=pl.paradas||[];
+  const it=(k,v)=>`<div><b>${k}</b><span>${esc(v||'—')}</span></div>`;
+  return `<div class="card"><h2>Plan de viaje <small>lo que planificó el chofer en RutaSky</small></h2>
+    <div class="pl-cab">${it('Planificado en',cb.planificadoEn)}${it('Partida planificada',cb.partida)}${it('Fecha de creación',cb.creado)}${it('Clima',cb.clima)}${it('Ruta',cb.ruta)}${cb.motivoRuta?it('Motivo ruta secundaria',cb.motivoRuta):''}</div>
+    ${ps.length?`<div class="cards">${ps.map(x=>`<div class="it" style="border-left-color:${x.tipo==='Destino'?'#C00000':'#378ADD'}"><div class="t"><span>${x.n}. ${esc(x.parada)}</span><span class="est" style="background:${x.tipo==='Destino'?'#C00000':'#378ADD'}">${esc(x.tipo)}</span></div>
+      <div class="s">Llegada planificada ${esc(x.llegada||'—')} · duración ${esc(x.duracion||'—')}${x.shipTo?' · Ship to '+esc(x.shipTo):''}</div></div>`).join('')}</div>
+    <div class="tbl-scroll"><table class="tabla"><thead><tr><th>#</th><th>Parada planificada</th><th>Tipo</th><th>Llegada planificada</th><th>Duración planificada</th><th>Ship to</th></tr></thead><tbody>
+    ${ps.map(x=>`<tr><td>${x.n}</td><td><div class="wrap">${esc(x.parada)}</div></td><td><span class="est" style="background:${x.tipo==='Destino'?'#C00000':'#378ADD'}">${esc(x.tipo)}</span></td><td>${esc(x.llegada||'—')}</td><td>${esc(x.duracion||'—')}</td><td>${esc(x.shipTo||'—')}</td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="vacio">El chofer no cargó paradas</div>'}</div>`;
 }
 function renderValidacion(c,pend){
   if(!pend){
