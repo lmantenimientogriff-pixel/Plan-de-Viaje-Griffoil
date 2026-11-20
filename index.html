@@ -15,7 +15,7 @@ header h1{color:#fff;font-size:15px;font-weight:600;flex:1;white-space:nowrap;ov
 .tab{background:rgba(255,255,255,.10);color:#fff;border:none;padding:8px 14px;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .tab.active{background:var(--R)}
 main{max-width:520px;margin:0 auto;padding:14px}
-@media(min-width:900px){main{max-width:1400px}}
+@media(min-width:900px){main{max-width:none;padding:14px 18px}}
 .view{display:none}.view.active{display:block}
 .card{background:#fff;border:1px solid var(--BO);border-radius:6px;padding:14px;margin-bottom:12px}
 .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -125,7 +125,12 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .tabla th.sort{cursor:pointer;user-select:none;white-space:nowrap}
 .tabla th.sort:hover{background:#333}
 .ges-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
-.tbl-ges{max-height:none}
+.tbl-ges{max-height:none;overflow:visible}
+.tbl-ges .tabla{table-layout:fixed;width:100%;font-size:11.5px}
+.tbl-ges .tabla th{top:52px;z-index:5;white-space:normal;line-height:1.2;vertical-align:bottom;padding:7px 5px}
+.tbl-ges .tabla td{padding:6px 5px;overflow-wrap:anywhere}
+.tbl-ges .wrap{min-width:0}
+.tbl-ges .est{white-space:normal;display:inline-block;line-height:1.25}
 .wrap{white-space:normal;min-width:160px}
 .pl-cab{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:10px;font-size:13px}.pl-cab b{display:block;color:var(--GT);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 .nota-ia{font-size:11px;color:var(--GT);margin-top:6px}
@@ -269,7 +274,7 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSJn-x-iY7IDaN3xk5NLJqhHiwLn8ahcbEG9Kwa5tMIBLZCn39pCeepUmHNIV1WmDEug/exec';
 
 // Índices de la fila compacta que devuelve el backend
-const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15,TREV:16,MOTIA:17};
+const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15,TREV:16,MOTIA:17,OBSVAL:18};
 // Motivo final: en los NO solo los motivos establecidos; en los OK c/obs la justificación
 function motivoFinal(r){ const m=String(r[I.COM]||''); if(r[I.CTRL]==='NO'){ const p=m.split(' / ').map(x=>x.trim()).filter(x=>/^(HACE DETENCION NO PROGRAMADA|DETENCION NO COINCIDE CON PLAN DE VIAJE|HORARIO PLANIFICADO INCORRECTO)/i.test(x)); return p.length?p.join(' / '):m; } if(r[I.CTRL]==='OK C/OBS') return m.replace(/^OK C\/OBS:\s*/i,''); return ''; }
 // Cronómetro de revisión: cuenta solo mientras la tarjeta está abierta y la pestaña visible
@@ -442,8 +447,10 @@ const GCOLS=[
   {k:'motia',t:'Motivo IA',      v:r=>r[I.MOTIA],  f:r=>`<div class="wrap">${esc(r[I.MOTIA]||'')}</div>`, val:true},
   {k:'est',  t:'Estado validación', v:r=>r[I.EST],  f:r=>estControl(r[I.EST]), val:true},
   {k:'ctrl', t:'Control final',  v:r=>CTRL_ORDEN.indexOf(r[I.CTRL]), f:r=>estCtrl(r[I.CTRL])},
+  {k:'obsval',t:'Observación validación', v:r=>r[I.OBSVAL]||'', f:r=>`<div class="wrap">${esc(r[I.OBSVAL]||'')}</div>`, val:true},
   {k:'com',  t:'Motivo final',   v:r=>motivoFinal(r), f:r=>`<div class="wrap">${esc(motivoFinal(r))}</div>`}
 ];
+const ANCHO_GES={fecha:6,id:5,cond:8,int:6.5,part:9,dest:8.5,rs:4,obs:9,res:6,motia:10,est:7,ctrl:5,obsval:9,com:9};
 function ordenarGes(k){ if(SORT.col===k) SORT.dir*=-1; else {SORT.col=k; SORT.dir=(k==='fecha'||k==='id')?-1:1;} GES_LIM=100; renderGes(); }
 function filasGestion(){
   const c=GCOLS.find(x=>x.k===SORT.col);
@@ -468,7 +475,7 @@ function renderGes(){
     ${r[I.RES]?`<div class="s">Control satelital IA: ${estCtrl(r[I.RES])} ${esc(r[I.MOTIA]||'')}</div><div class="s">Estado validación: ${estControl(r[I.EST])}</div>`:''}
     <div class="s">Control final: ${estCtrl(r[I.CTRL])} ${motivoFinal(r)?`<span style="color:#C00000">${esc(motivoFinal(r))}</span>`:''}</div></div>`;
   $('tblGes').innerHTML=`<div class="cards">${vis.map(card).join('')}</div>
-    <div class="tbl-scroll tbl-ges"><table class="tabla"><thead><tr>${cols.map(x=>`<th class="sort" onclick="ordenarGes('${x.k}')">${x.t}${SORT.col===x.k?(SORT.dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead>
+    <div class="tbl-scroll tbl-ges"><table class="tabla"><colgroup>${cols.map(x=>`<col style="width:${ANCHO_GES[x.k]||6}%">`).join('')}</colgroup><thead><tr>${cols.map(x=>`<th class="sort" onclick="ordenarGes('${x.k}')">${x.t}${SORT.col===x.k?(SORT.dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead>
     <tbody>${vis.map(r=>`<tr class="tr-click" onclick="abrirTarjeta('${esc(r[I.ID])}')" title="Ver tarjeta del viaje">${cols.map(x=>`<td>${x.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     ${rows.length>GES_LIM?`<div class="mas"><button class="btn sec" onclick="GES_LIM+=200;renderGes()">Ver más (${nf(rows.length-GES_LIM)} restantes)</button></div>`:''}`;
 }
@@ -702,7 +709,7 @@ function renderValidacion(c,pend){
       <div class="row2"><div><label>Control final</label><select id="vCtrl" onchange="motivosMod()"><option>NO</option><option>OK C/OBS</option><option>OK</option></select></div>
       <div><label>Motivo</label><select id="vMot"></select></div></div>
     </div>
-    <div style="margin-bottom:10px"><label>Observación de Seguridad <span id="vObsReq" style="display:none;color:#C00000">(obligatoria al modificar)</span></label><textarea id="vObs" placeholder="Evidencia revisada, descargo del chofer, autorización, etc."></textarea></div>
+    <div style="margin-bottom:10px"><label>Observación de Seguridad <span id="vObsReq" style="color:#C00000">(obligatoria)</span></label><textarea id="vObs" placeholder="Evidencia revisada, descargo del chofer, autorización, etc."></textarea></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn g" id="bVal" onclick="enviarValidacion('VALIDAR')">✓ Validar resultado propuesto (${esc(c.resultado)})</button>
       <button class="btn r" id="bMod" onclick="modoModificar()">✎ Modificar control</button>
@@ -723,13 +730,14 @@ async function enviarValidacion(accion){
   if(!usuario) return mostrarToast('Seleccioná el usuario','err');
   if(!pin) return mostrarToast('Ingresá el PIN','err');
   const params={action:'validar',id:TJ.plan[I.ID],usuario,pin,accion,obs,seg:revSegundos()};
-  if(accion==='MODIFICAR'){ if(!obs) return mostrarToast('La observación es obligatoria al modificar','err'); params.control=$('vCtrl').value; params.motivo=$('vMot').value==='(sin motivo)'?'':$('vMot').value; }
+  if(!obs) return mostrarToast('La observación de validación es obligatoria','err');
+  if(accion==='MODIFICAR'){ params.control=$('vCtrl').value; params.motivo=$('vMot').value==='(sin motivo)'?'':$('vMot').value; }
   $('loader').style.display='flex';
   try{
     const j=await fetch(API_URL+'?'+new URLSearchParams(params)).then(r=>r.json());
     if(!j.ok) throw new Error(j.error);
     TJ=j; renderTarjeta(); mostrarToast(accion==='VALIDAR'?'Control validado':'Control modificado y validado','ok');
-    const r=DATA.find(x=>x[I.ID]===j.plan[I.ID]); if(r){ r[I.CTRL]=j.plan[I.CTRL]; r[I.COM]=j.plan[I.COM]; r[I.EST]=j.plan[I.EST]; r[I.TREV]=params.seg; render(); }
+    const r=DATA.find(x=>x[I.ID]===j.plan[I.ID]); if(r){ r[I.CTRL]=j.plan[I.CTRL]; r[I.COM]=j.plan[I.COM]; r[I.EST]=j.plan[I.EST]; r[I.TREV]=params.seg; r[I.OBSVAL]=obs; render(); }
     REV.id=null; REV.desde=null;
   }catch(e){mostrarToast(e.message,'err')}
   finally{$('loader').style.display='none'}
