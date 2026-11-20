@@ -210,15 +210,6 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
 <section class="view active" id="vDash">
   <div class="kpis" id="kpis"></div>
 
-  <!-- Eficiencia de la IA -->
-  <div class="card sec-gap ia-ef"><h2>Eficiencia del control satelital IA <small>antes se revisaba el 100% de los planes a mano · objetivos: acierto ≥ 85% · automatización ≥ 50%</small></h2>
-    <div class="kpis" id="kpisIA" style="margin-bottom:10px"></div>
-    <div class="grid c2">
-      <div><div class="sub-h">Validaciones de Seguridad sobre la propuesta de la IA</div><div id="iaDesvio"></div></div>
-      <div><div class="sub-h">Evolución semanal</div><div id="iaTend"></div></div>
-    </div>
-    <div class="nota"><b>Acierto</b> = validados sin modificar ÷ (validados + modificados). <b>Automatización</b> = OK automáticos ÷ planes analizados por la IA. <b>Ahorro</b> = planes analizados × 3:00 min (revisión manual de antes) − planes que requieren revisión × tiempo promedio real de revisión. <b>IA más permisiva</b>: Seguridad endureció el resultado (el error más importante). <b>IA más estricta</b>: Seguridad lo aflojó.</div>
-  </div>
 
   <!-- Indicadores copiados del Looker -->
   <div class="grid c21 sec-gap">
@@ -233,6 +224,16 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
   <div class="grid c21 sec-gap">
     <div class="card"><h2>Resultado de control por día</h2><div id="leyCtrl2" class="leyenda"></div><div id="porDia"></div></div>
     <div class="card"><h2>Comentarios <small>motivos del control</small></h2><div id="pieMot"></div></div>
+  </div>
+
+  <!-- Eficiencia de la IA -->
+  <div class="card sec-gap ia-ef"><h2>Eficiencia del control satelital IA <small>antes se revisaba el 100% de los planes a mano · objetivos: acierto ≥ 85% · automatización ≥ 50%</small></h2>
+    <div class="kpis" id="kpisIA" style="margin-bottom:10px"></div>
+    <div class="grid c2">
+      <div><div class="sub-h">Validaciones de Seguridad sobre la propuesta de la IA</div><div id="iaDesvio"></div></div>
+      <div><div class="sub-h">Evolución semanal</div><div id="iaTend"></div></div>
+    </div>
+    <div class="nota"><b>Acierto</b> = validados sin modificar ÷ (validados + modificados). <b>Automatización</b> = OK automáticos ÷ planes analizados por la IA. <b>Ahorro</b> = planes analizados × 3:00 min (revisión manual de antes) − planes que requieren revisión × tiempo promedio real de revisión. <b>IA más permisiva</b>: Seguridad endureció el resultado (el error más importante). <b>IA más estricta</b>: Seguridad lo aflojó.</div>
   </div>
 
   <!-- Indicadores recomendados -->
@@ -577,11 +578,8 @@ function render(){
       k(sem(autoP,50),'% automatización',autoP==null?'—':f1(autoP)+'%',`${nf(auto)} OK automáticos de ${nf(iaA.length)} analizados · objetivo ≥ 50%`)+
       k(ahorroH>0?'g':'a','Ahorro de tiempo',iaA.length?hm(ahorroH):'—',iaA.length?`${f1(pct(ahorroH,antesH))}% · antes ${hm(antesH)}, ahora ${hm(ahoraH)}`:'')+
       k(pendS?'a':'g','Pendientes de revisión',nf(pendS),`NO y OK C/OBS sin validar · ${nf(permis)} errores permisivos detectados`);
-    const fila=(l,v,c,t)=>`<div class="dv-row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};margin-right:6px"></i>${l}</span><span><b>${nf(v)}</b> · ${rev?f1(pct(v,rev)):'0'}%${t?' <small style="color:var(--GT)">'+t+'</small>':''}</span></div>`;
-    $('iaDesvio').innerHTML = rev ? fila('Validado sin cambios (acierto)',val.length,'#1D9E75')+
-      fila('Modificado · IA más permisiva',permis,'#C00000','Seguridad endureció el resultado')+
-      fila('Modificado · IA más estricta',estric,'#EF9F27','Seguridad aflojó el resultado')+
-      (otros?fila('Modificado · mismo resultado, otro motivo',otros,'#378ADD'):'') : '<div class="vacio">Sin validaciones en el período</div>';
+    if(rev) pie('iaDesvio',[{l:'Validado sin cambios (acierto)',v:val.length,c:'#1D9E75'},{l:'Modificado · IA más permisiva (Seguridad endureció)',v:permis,c:'#C00000'},{l:'Modificado · IA más estricta (Seguridad aflojó)',v:estric,c:'#EF9F27'},...(otros?[{l:'Modificado · mismo resultado, otro motivo',v:otros,c:'#378ADD'}]:[])],f1(acierto)+'%');
+    else $('iaDesvio').innerHTML='<div class="vacio">Sin validaciones en el período</div>';
     // evolución semanal
     const sw={}; iaA.forEach(r=>{const d=new Date(r[I.FECHA].slice(0,10)+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));const kk=iso(d);const o=(sw[kk]=sw[kk]||{n:0,a:0,v:0,r:0});o.n++;if(r[I.EST]==='OK AUTOMÁTICO')o.a++;if(r[I.EST]==='VALIDADO'){o.v++;o.r++}if(r[I.EST]==='MODIFICADO Y VALIDADO')o.r++;});
     const ks=Object.keys(sw).sort();
