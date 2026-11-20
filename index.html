@@ -130,7 +130,8 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .tbl-ges .tabla th{top:52px;z-index:5;white-space:normal;line-height:1.2;vertical-align:bottom;padding:7px 5px}
 .tbl-ges .tabla td{padding:6px 5px;overflow-wrap:anywhere}
 .tbl-ges .wrap{min-width:0}
-.tbl-ges .est{white-space:normal;display:inline-block;line-height:1.25}
+.tbl-ges .est,.tbl-ges .est-ctrl{white-space:normal;display:inline-block;line-height:1.25;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.tbl-ges .tabla td{overflow:hidden}
 .wrap{white-space:normal;min-width:160px}
 .pl-cab{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:10px;font-size:13px}.pl-cab b{display:block;color:var(--GT);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 .nota-ia{font-size:11px;color:var(--GT);margin-top:6px}
@@ -141,7 +142,9 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .est-ctrl{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;white-space:nowrap;border:1px solid currentColor}
 .tr-click{cursor:pointer}.tr-click:hover td{background:#fff4f4!important}
 .tj-head{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:900px){.tj-head{grid-template-columns:1.2fr 1fr}}
+@media(min-width:900px){.tj-head{grid-template-columns:1fr 1fr}}
+.tj-head{margin-bottom:12px}
+@media(min-width:1200px){.dl.dl2{grid-template-columns:110px 1fr 110px 1fr}.dl.dl2 .dl-full{grid-column:2 / -1}}
 .tj-res{font-size:22px;font-weight:700;padding:10px 14px;border-radius:6px;color:#fff;display:inline-block}
 .alerta{background:#fff8e6;border-left:4px solid var(--A);padding:6px 10px;border-radius:4px;font-size:12px;margin-top:6px}
 .alerta.crit{background:#fdecec;border-left-color:var(--R);color:var(--R);font-weight:600}
@@ -207,9 +210,9 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
   <div class="grid c21 sec-gap">
     <div class="card"><h2>Plan de viaje por conductor <small>ordenado por mejor cumplimiento</small></h2><div id="leyCtrl1" class="leyenda"></div><div class="sb-scroll" id="porConductor"></div></div>
     <div class="grid" style="gap:12px">
-      <div class="card"><h2>% de cumplimiento <small>según RutaSky</small></h2><div id="pieRS"></div></div>
-      <div class="card"><h2>% de cumplimiento <small>según análisis IA (control satelital)</small></h2><div id="pieIA"></div><div id="pieIAnota" class="nota-ia"></div></div>
-      <div class="card"><h2>Resultado de control</h2><div id="pieCtrl"></div></div>
+      <div class="card"><h2>% cumplimiento RutaSky <small>tilde de RutaSky al cerrar el plan</small></h2><div id="pieRS"></div></div>
+      <div class="card"><h2>% cumplimiento Control satelital IA <small>resultado propuesto por el análisis</small></h2><div id="pieIA"></div><div id="pieIAnota" class="nota-ia"></div></div>
+      <div class="card"><h2>% cumplimiento Control final <small>resultado después de la validación de Seguridad</small></h2><div id="pieCtrl"></div></div>
     </div>
   </div>
 
@@ -450,7 +453,7 @@ const GCOLS=[
   {k:'obsval',t:'Observación validación', v:r=>r[I.OBSVAL]||'', f:r=>`<div class="wrap">${esc(r[I.OBSVAL]||'')}</div>`, val:true},
   {k:'com',  t:'Motivo final',   v:r=>motivoFinal(r), f:r=>`<div class="wrap">${esc(motivoFinal(r))}</div>`}
 ];
-const ANCHO_GES={fecha:6,id:5,cond:8,int:6.5,part:9,dest:8.5,rs:4,obs:9,res:6,motia:10,est:7,ctrl:5,obsval:9,com:9};
+const ANCHO_GES={fecha:5.5,id:5,cond:7.5,int:6,part:8.5,dest:8,rs:4,obs:9,res:6,motia:10.5,est:8,ctrl:5.5,obsval:9,com:8.5};
 function ordenarGes(k){ if(SORT.col===k) SORT.dir*=-1; else {SORT.col=k; SORT.dir=(k==='fecha'||k==='id')?-1:1;} GES_LIM=100; renderGes(); }
 function filasGestion(){
   const c=GCOLS.find(x=>x.k===SORT.col);
@@ -532,7 +535,7 @@ function render(){
     k('','PDV totales',nf(n),`${nf(new Set(R.map(r=>r[I.INT])).size)} internos`)+
     k('','Conductores',nf(conductores),'')+
     k('g','PDV cumplidos (RutaSky)',nf(rsOk),`${f1(pct(rsOk,n))}% del total`)+
-    k(pct(ctrlOk,ctrl.length)>=90?'g':pct(ctrlOk,ctrl.length)>=75?'a':'r','Cumplimiento por control',`${f1(pct(ctrlOk,ctrl.length))}%`,`${nf(ctrlOk)} OK de ${nf(ctrl.length)} controlados`)+
+    k(pct(ctrlOk,ctrl.length)>=90?'g':pct(ctrlOk,ctrl.length)>=75?'a':'r','% cumplimiento Control final',`${f1(pct(ctrlOk,ctrl.length))}%`,`${nf(ctrlOk)} OK de ${nf(ctrl.length)} controlados`)+
     k(sinCtrl.length?'a':'g','Pendientes de control',nf(sinCtrl.length),`${nf(sin7)} con más de 7 días`)+
     k(pendSeg?'r':'g','Pendientes de Seguridad',nf(pendSeg),`${nf(okAuto)} OK automáticos (satelital)`)+
     (()=>{ const tv=R.filter(r=>r[I.TREV]>0); if(!tv.length) return k('','Tiempo de revisión','—','se mide al validar en la tarjeta');
@@ -548,7 +551,7 @@ function render(){
   const lc=Object.entries(porC).sort((a,b)=>(b[1].cp-a[1].cp)||(b[1].t-a[1].t));
   $('porConductor').innerHTML = lc.length ? lc.map(([c,o])=>`<div class="sb-row"><div class="nm" title="${esc(c)}">${esc(c)}</div>
     <div class="sb-track">${CTRL_ORDEN.filter(k=>o[k]).map(k=>{const p=pct(o[k],o.t);return `<div style="width:${p}%;background:${CTRL_COLOR[k]}" title="${k}: ${o[k]} (${f1(p)}%)">${p>=12?f1(p)+'%':''}</div>`}).join('')}</div>
-    <div class="tt" title="Cumplimiento por control · cantidad de PDV"><b style="color:${o.cp<0?'#6b7280':o.cp>=.9?'#1D9E75':o.cp>=.75?'#EF9F27':'#C00000'}">${o.cp<0?'—':f1(o.cp*100)+'%'}</b><br>${nf(o.t)} PDV</div></div>`).join('') : '<div class="vacio">Sin datos</div>';
+    <div class="tt" title="% cumplimiento Control final · cantidad de PDV"><b style="color:${o.cp<0?'#6b7280':o.cp>=.9?'#1D9E75':o.cp>=.75?'#EF9F27':'#C00000'}">${o.cp<0?'—':f1(o.cp*100)+'%'}</b><br>${nf(o.t)} PDV</div></div>`).join('') : '<div class="vacio">Sin datos</div>';
 
   // Tortas
   pie('pieRS',[{l:'Sí',v:rsOk,c:'#1D9E75'},{l:'No',v:n-rsOk,c:'#C00000'}],n?f1(pct(rsOk,n))+'%':'');
@@ -646,29 +649,40 @@ async function abrirTarjeta(id){
     if(!t.ok) throw new Error(t.error); USUARIOS=u.items||[]; TJ=t; revIniciar(id); renderTarjeta();
   }catch(e){$('tjBody').innerHTML=`<div class="card" style="color:#C00000">No se pudo abrir la tarjeta: ${esc(e.message)}</div>`}
 }
+// Ordena las etapas en orden cronológico: las reales por su hora de llegada y las paradas del plan
+// no realizadas por su hora de llegada planificada (en el día del viaje), para leer el viaje en secuencia.
+function ordenarEtapas(lista, fechaPlan){
+  const aMs=s=>{ const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2})/.exec(s||''); return m?new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5]).getTime():null; };
+  const m0=/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(fechaPlan||''); const ini=m0?new Date(+m0[1],+m0[2]-1,+m0[3],+m0[4],+m0[5]).getTime():null;
+  const plMs=hhmm=>{ const m=/^(\d{1,2}):(\d{2})/.exec(hhmm||''); if(!m||!ini) return null; const d=new Date(ini); d.setHours(+m[1],+m[2],0,0); let t=d.getTime(); if(t<ini-3600e3) t+=864e5; return t; };
+  const conClave=lista.map((e,i)=>({e,i,k:e.ini?aMs(e.ini):plMs(e.pl)}));
+  conClave.sort((a,b)=>{ if(a.k==null&&b.k==null) return a.i-b.i; if(a.k==null) return 1; if(b.k==null) return -1; return (a.k-b.k)||(a.i-b.i); });
+  return conClave.map((x,j)=>Object.assign({},x.e,{n:j+1}));
+}
 function renderTarjeta(){
-  const p=TJ.plan, c=TJ.control, et=TJ.etapas||[];
+  const p=TJ.plan, c=TJ.control, et=ordenarEtapas(TJ.etapas||[], TJ.plan[I.FECHA]);
   const resColor=r=>({'OK':'#1D9E75','OK C/OBS':'#378ADD','NO':'#C00000'}[r]||'#6b7280');
   const alertas=c&&c.alertas?c.alertas.split(' || ').filter(Boolean):[];
   const dl=(k,v)=>`<b>${k}</b><span>${v||'—'}</span>`;
   const pend=c&&c.estado==='PENDIENTE SEGURIDAD';
   $('tjBody').innerHTML=`
-  <div class="card"><div class="tj-head">
-    <div>
+  <div class="tj-head">
+    <div class="card" style="margin:0">
       <h2 style="font-size:16px">Plan de viaje #${esc(p[I.ID])} <small>${dmy(p[I.FECHA])} ${p[I.FECHA].slice(11)}</small></h2>
-      <div class="dl">${dl('Conductor',esc(p[I.COND]))}${dl('Interno',esc(p[I.INT]))}${dl('Partida',esc(p[I.PART]))}${dl('Destino','<b>'+esc(p[I.DEST])+'</b>')}
-        ${dl('RutaSky',p[I.RS]?'Cumplido':'No cumplido')}${dl('Obs. chofer',p[I.OBSTXT]?'<i>"'+esc(p[I.OBSTXT])+'"</i>':'—')}
-        ${dl('Control en base',estCtrl(p[I.CTRL])+(p[I.COM]?' '+esc(p[I.COM]):''))}</div>
+      <div class="dl dl2">${dl('Conductor',esc(p[I.COND]))}${dl('RutaSky',p[I.RS]?'Cumplido':'No cumplido')}
+        ${dl('Interno',esc(p[I.INT]))}${dl('Control final',estCtrl(p[I.CTRL])+(p[I.COM]?' '+esc(p[I.COM]):''))}
+        ${dl('Partida',esc(p[I.PART]))}${dl('Destino','<b>'+esc(p[I.DEST])+'</b>')}
+        <b>Obs. chofer</b><span class="dl-full">${p[I.OBSTXT]?'<i>"'+esc(p[I.OBSTXT])+'"</i>':'—'}</span></div>
     </div>
-    <div>${c?`
-      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Resultado control satelital</div>
+    <div class="card" style="margin:0">${c?`
+      <h2 style="font-size:16px">Resultado control satelital IA</h2>
       <div class="tj-res" style="background:${resColor(c.resultado)}">${esc(c.resultado)}</div> ${estControl(c.estado)}
       <div style="margin-top:8px;font-size:13px">${esc(c.motivo||'Sin desvíos')}</div>
       ${c.tipo?`<div style="font-size:12px;color:#6b7280">Tipo: ${esc(c.tipo)}</div>`:''}
       <div style="font-size:12px;color:#6b7280;margin-top:4px">Detenciones: ${c.nDet} · no cumplidas: ${c.nNo} · descanso intermedio: ${c.descanso} min · Controlado por ${esc(c.controladoPor)} el ${esc(c.fechaControl)}</div>
       ${alertas.map(a=>`<div class="alerta ${/CRÍTICA/.test(a)?'crit':''}">${esc(a)}</div>`).join('')}`
-      :'<div class="vacio">Este plan todavía no tiene control satelital.</div>'}
-    </div></div></div>
+      :'<h2 style="font-size:16px">Resultado control satelital IA</h2><div class="vacio">Este plan todavía no tiene control satelital.</div>'}
+    </div></div>
   ${c&&c.recorrido?`<div class="card"><h2>Recorrido y detenciones <small>trayecto real según satelital</small></h2><div id="mapa"></div>
     <div class="leyenda" style="margin-top:8px"><span><i style="background:#1D9E75"></i>Cumple</span><span><i style="background:#378ADD"></i>Cumple c/obs</span><span><i style="background:#C00000"></i>No cumple</span><span><i style="background:#9ca3af"></i>Ignorada / no considerada</span><span><i style="background:#EF9F27"></i>Planificada no realizada</span></div></div>`:''}
   ${renderPlanificado(TJ.planificado)}
