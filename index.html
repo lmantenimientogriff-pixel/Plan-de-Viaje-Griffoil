@@ -31,7 +31,11 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .meta{font-size:12px;color:var(--GT);margin:-4px 0 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
 /* KPIs */
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-@media(min-width:900px){.kpis{grid-template-columns:repeat(8,1fr)}}
+@media(min-width:900px){.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+.sub-h{font-size:12px;font-weight:600;color:var(--GT);text-transform:uppercase;letter-spacing:.03em;margin:4px 0 8px}
+.ia-ef .kpi{background:#fafafa}
+.dv-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--BO);font-size:13px}
+.dv-row b{font-size:15px}
 .kpi{background:#fff;border:1px solid var(--BO);border-top:4px solid var(--N);border-radius:6px;padding:10px 12px}
 .kpi .l{font-size:11px;color:var(--GT);text-transform:uppercase;letter-spacing:.4px;min-height:28px}
 .kpi .n{font-size:24px;font-weight:700;line-height:1.1}
@@ -192,8 +196,8 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
       <div><label>Cumplido RutaSky</label><div class="ms" id="ms_rs"></div></div>
       <div><label>Motivo</label><div class="ms" id="ms_mot"></div></div>
       <div><label>Estado control</label><div class="ms" id="ms_estc"></div></div>
-      <div><label>Punto de partida</label><input id="fPart" placeholder="Contiene…" oninput="render()"></div>
-      <div><label>Buscar</label><input id="fTxt" placeholder="Id, observación…" oninput="render()"></div>
+      <div><label>Punto de partida</label><input id="fPart" type="search" name="partida_pdv_x" autocomplete="off" data-lpignore="true" placeholder="Contiene…" oninput="render()"></div>
+      <div><label>Buscar</label><input id="fTxt" type="search" name="buscar_pdv_x" autocomplete="off" data-lpignore="true" placeholder="Id, observación…" oninput="esAutofill(this)?(this.value='',this.dataset.u=''):(this.dataset.u=this.value?'1':'');render()"></div>
       <div style="align-self:end;display:flex;gap:6px"><button class="btn sec" onclick="limpiarFiltros()">Limpiar</button><button class="btn sec" onclick="recargar()" title="Volver a leer la planilla">↻</button><button class="btn" onclick="exportarCSV()" title="Exportar filas filtradas">CSV</button></div>
     </div>
     <div class="chips" id="chips"></div>
@@ -205,6 +209,16 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
 <!-- ================= DASHBOARD ================= -->
 <section class="view active" id="vDash">
   <div class="kpis" id="kpis"></div>
+
+  <!-- Eficiencia de la IA -->
+  <div class="card sec-gap ia-ef"><h2>Eficiencia del control satelital IA <small>antes se revisaba el 100% de los planes a mano · objetivos: acierto ≥ 85% · automatización ≥ 50%</small></h2>
+    <div class="kpis" id="kpisIA" style="margin-bottom:10px"></div>
+    <div class="grid c2">
+      <div><div class="sub-h">Validaciones de Seguridad sobre la propuesta de la IA</div><div id="iaDesvio"></div></div>
+      <div><div class="sub-h">Evolución semanal</div><div id="iaTend"></div></div>
+    </div>
+    <div class="nota"><b>Acierto</b> = validados sin modificar ÷ (validados + modificados). <b>Automatización</b> = OK automáticos ÷ planes analizados por la IA. <b>Ahorro</b> = planes analizados × 3:00 min (revisión manual de antes) − planes que requieren revisión × tiempo promedio real de revisión. <b>IA más permisiva</b>: Seguridad endureció el resultado (el error más importante). <b>IA más estricta</b>: Seguridad lo aflojó.</div>
+  </div>
 
   <!-- Indicadores copiados del Looker -->
   <div class="grid c21 sec-gap">
@@ -513,7 +527,10 @@ function lista(el, rows, cols, cardFn, limite){
 }
 
 // ===================== RENDER =====================
+function esAutofill(el){ try{ return el.matches(':autofill'); }catch(e){ try{ return el.matches(':-webkit-autofill'); }catch(e2){ return false; } } }
 function render(){
+  // el autocompletar del navegador puede escribir el usuario en el buscador al pedir el PIN: si no lo tipeó el usuario, se limpia
+  if(fTxt.value && fTxt.dataset.u!=='1') fTxt.value='';
   const R = FILTRADO = filtrar();
   pintarBotonesMS(); GES_LIM=100; renderGes();
   $('metaRango').textContent = `Período: ${dmy(fDesde.value)} al ${dmy(fHasta.value)} · ${nf(R.length)} planes con los filtros aplicados`;
@@ -541,6 +558,45 @@ function render(){
     (()=>{ const tv=R.filter(r=>r[I.TREV]>0); if(!tv.length) return k('','Tiempo de revisión','—','se mide al validar en la tarjeta');
       const prom=tv.reduce((s,r)=>s+r[I.TREV],0)/tv.length; const mm=Math.floor(prom/60), ss=Math.round(prom%60);
       return k(prom<=180?'g':'a','Tiempo prom. de revisión',`${mm}:${String(ss).padStart(2,'0')} min`,`${nf(tv.length)} planes validados · antes 3:00 min/plan`); })();
+
+  // ---- Eficiencia de la IA ----
+  (()=>{
+    const RK={'NO':0,'OK C/OBS':1,'OK':2};
+    const iaA=R.filter(r=>['OK','OK C/OBS','NO'].includes(r[I.RES]));
+    const auto=iaA.filter(r=>r[I.EST]==='OK AUTOMÁTICO').length;
+    const val=iaA.filter(r=>r[I.EST]==='VALIDADO'), mod=iaA.filter(r=>r[I.EST]==='MODIFICADO Y VALIDADO');
+    const rev=val.length+mod.length, pendS=iaA.filter(r=>r[I.EST]==='PENDIENTE SEGURIDAD').length;
+    const permis=mod.filter(r=>RK[r[I.CTRL]]<RK[r[I.RES]]).length, estric=mod.filter(r=>RK[r[I.CTRL]]>RK[r[I.RES]]).length, otros=mod.length-permis-estric;
+    const acierto=rev?pct(val.length,rev):null, autoP=iaA.length?pct(auto,iaA.length):null;
+    const tv=R.filter(r=>r[I.TREV]>0); const tprom=tv.length?tv.reduce((x,r)=>x+r[I.TREV],0)/tv.length:180;
+    const antesH=iaA.length*180/3600, ahoraH=(iaA.length-auto)*tprom/3600, ahorroH=antesH-ahoraH;
+    const sem=(v,meta)=>v==null?'':v>=meta?'g':v>=meta-15?'a':'r';
+    const hm=h=>{const m=Math.round(h*60);return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`;};
+    $('kpisIA').innerHTML=
+      k(sem(acierto,85),'% acierto IA',acierto==null?'—':f1(acierto)+'%',rev?`${nf(val.length)} validados sin cambios de ${nf(rev)} revisados · objetivo ≥ 85%`:'sin validaciones en el período')+
+      k(sem(autoP,50),'% automatización',autoP==null?'—':f1(autoP)+'%',`${nf(auto)} OK automáticos de ${nf(iaA.length)} analizados · objetivo ≥ 50%`)+
+      k(ahorroH>0?'g':'a','Ahorro de tiempo',iaA.length?hm(ahorroH):'—',iaA.length?`${f1(pct(ahorroH,antesH))}% · antes ${hm(antesH)}, ahora ${hm(ahoraH)}`:'')+
+      k(pendS?'a':'g','Pendientes de revisión',nf(pendS),`NO y OK C/OBS sin validar · ${nf(permis)} errores permisivos detectados`);
+    const fila=(l,v,c,t)=>`<div class="dv-row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};margin-right:6px"></i>${l}</span><span><b>${nf(v)}</b> · ${rev?f1(pct(v,rev)):'0'}%${t?' <small style="color:var(--GT)">'+t+'</small>':''}</span></div>`;
+    $('iaDesvio').innerHTML = rev ? fila('Validado sin cambios (acierto)',val.length,'#1D9E75')+
+      fila('Modificado · IA más permisiva',permis,'#C00000','Seguridad endureció el resultado')+
+      fila('Modificado · IA más estricta',estric,'#EF9F27','Seguridad aflojó el resultado')+
+      (otros?fila('Modificado · mismo resultado, otro motivo',otros,'#378ADD'):'') : '<div class="vacio">Sin validaciones en el período</div>';
+    // evolución semanal
+    const sw={}; iaA.forEach(r=>{const d=new Date(r[I.FECHA].slice(0,10)+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));const kk=iso(d);const o=(sw[kk]=sw[kk]||{n:0,a:0,v:0,r:0});o.n++;if(r[I.EST]==='OK AUTOMÁTICO')o.a++;if(r[I.EST]==='VALIDADO'){o.v++;o.r++}if(r[I.EST]==='MODIFICADO Y VALIDADO')o.r++;});
+    const ks=Object.keys(sw).sort();
+    if(!ks.length){$('iaTend').innerHTML='<div class="vacio">Sin datos</div>';return;}
+    const W=560,H=190,pl=30,pb=22,pt=10,pr=24; const x=i=>ks.length<2?(pl+W-pr)/2:pl+i*(W-pl-pr)/(ks.length-1), y=v=>pt+(100-v)*(H-pt-pb)/100;
+    const serie=f=>ks.map((kk,i)=>{const v=f(sw[kk]);return v==null?null:{x:x(i),y:y(v),v}}).filter(Boolean);
+    const sA=serie(o=>o.r?pct(o.v,o.r):null), sU=serie(o=>pct(o.a,o.n));
+    const lin=(ser,c)=>ser.length?`<polyline points="${ser.map(p=>p.x+','+p.y).join(' ')}" fill="none" stroke="${c}" stroke-width="2.5"/>${ser.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${c}"><title>${f1(p.v)}%</title></circle>`).join('')}`:'';
+    const grid=[0,25,50,75,100].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#eee"/><text x="2" y="${y(v)+3}">${v}%</text>`).join('');
+    const meta=(v,c)=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="5 4" stroke-width="1.2"/>`;
+    const xl=ks.map((kk,i)=>`<text x="${x(i)-12}" y="${H-6}">${dm(kk)}</text>`).join('');
+    $('iaTend').innerHTML=`<div class="leyenda"><span><i style="background:#1D9E75"></i>% acierto (meta 85%)</span><span><i style="background:#378ADD"></i>% automatización (meta 50%)</span></div>
+      <svg class="svg-line" viewBox="0 0 ${W} ${H}" width="100%">${grid}${meta(85,'#1D9E75')}${meta(50,'#378ADD')}${xl}${lin(sA,'#1D9E75')}${lin(sU,'#378ADD')}</svg>
+      <div class="nota">Semana por fecha de partida del plan (lunes). Líneas punteadas = objetivos.</div>`;
+  })();
 
   // Por conductor (barras 100% apiladas)
   leyendaCtrl('leyCtrl1'); leyendaCtrl('leyCtrl2');
@@ -718,7 +774,7 @@ function renderValidacion(c,pend){
   }
   const opts=USUARIOS.map(u=>`<option>${esc(u.nombre)}</option>`).join('');
   return `<div class="card val-box"><h2>Validación de Seguridad <small>el resultado propuesto queda pendiente hasta que Seguridad lo valide</small></h2>
-    <div class="row2"><div><label>Usuario</label><select id="vUsr"><option value="">Seleccionar…</option>${opts}</select></div><div><label>PIN</label><input id="vPin" type="password" inputmode="numeric" autocomplete="off"></div></div>
+    <div class="row2"><div><label>Usuario</label><select id="vUsr"><option value="">Seleccionar…</option>${opts}</select></div><div><label>PIN</label><input id="vPin" type="password" name="pin_validacion" inputmode="numeric" autocomplete="new-password" data-lpignore="true"></div></div>
     <div id="vMod" style="display:none">
       <div class="row2"><div><label>Control final</label><select id="vCtrl" onchange="motivosMod()"><option>NO</option><option>OK C/OBS</option><option>OK</option></select></div>
       <div><label>Motivo</label><select id="vMot"></select></div></div>
