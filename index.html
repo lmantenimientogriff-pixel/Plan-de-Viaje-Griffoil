@@ -128,6 +128,7 @@ input,select{width:100%;font-size:16px;padding:8px;border:1px solid var(--BO);bo
 .tbl-ges{max-height:none}
 .wrap{white-space:normal;min-width:160px}
 .pl-cab{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 16px;margin-bottom:10px;font-size:13px}.pl-cab b{display:block;color:var(--GT);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+.nota-ia{font-size:11px;color:var(--GT);margin-top:6px}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -202,6 +203,7 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
     <div class="card"><h2>Plan de viaje por conductor <small>ordenado por mejor cumplimiento</small></h2><div id="leyCtrl1" class="leyenda"></div><div class="sb-scroll" id="porConductor"></div></div>
     <div class="grid" style="gap:12px">
       <div class="card"><h2>% de cumplimiento <small>según RutaSky</small></h2><div id="pieRS"></div></div>
+      <div class="card"><h2>% de cumplimiento <small>según análisis IA (control satelital)</small></h2><div id="pieIA"></div><div id="pieIAnota" class="nota-ia"></div></div>
       <div class="card"><h2>Resultado de control</h2><div id="pieCtrl"></div></div>
     </div>
   </div>
@@ -267,7 +269,13 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSJn-x-iY7IDaN3xk5NLJqhHiwLn8ahcbEG9Kwa5tMIBLZCn39pCeepUmHNIV1WmDEug/exec';
 
 // Índices de la fila compacta que devuelve el backend
-const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15};
+const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15,TREV:16};
+// Cronómetro de revisión: cuenta solo mientras la tarjeta está abierta y la pestaña visible
+const REV={id:null,acc:0,desde:null};
+function revIniciar(id){ REV.id=id; REV.acc=0; REV.desde=document.hidden?null:Date.now(); }
+function revSegundos(){ return Math.round((REV.acc+(REV.desde?Date.now()-REV.desde:0))/1000); }
+function revPausar(){ if(REV.desde){ REV.acc+=Date.now()-REV.desde; REV.desde=null; } }
+document.addEventListener('visibilitychange',()=>{ if(!REV.id) return; if(document.hidden) revPausar(); else if(!REV.desde) REV.desde=Date.now(); });
 const EST_COLOR = {'OK AUTOMÁTICO':'#1D9E75','PENDIENTE SEGURIDAD':'#C00000','VALIDADO':'#378ADD','MODIFICADO Y VALIDADO':'#6b21a8'};
 function estControl(e){return e?`<span class="est-ctrl" style="color:${EST_COLOR[e]||'#6b7280'}">${esc(e)}</span>`:''}
 const CTRL_ORDEN = ['OK','OK C/OBS','NO','N/A','SIN CONTROL'];
@@ -515,9 +523,10 @@ function render(){
     k('g','PDV cumplidos (RutaSky)',nf(rsOk),`${f1(pct(rsOk,n))}% del total`)+
     k(pct(ctrlOk,ctrl.length)>=90?'g':pct(ctrlOk,ctrl.length)>=75?'a':'r','Cumplimiento por control',`${f1(pct(ctrlOk,ctrl.length))}%`,`${nf(ctrlOk)} OK de ${nf(ctrl.length)} controlados`)+
     k(sinCtrl.length?'a':'g','Pendientes de control',nf(sinCtrl.length),`${nf(sin7)} con más de 7 días`)+
-    k(fv?'r':'g','Falsos verdes',nf(fv),`RutaSky OK / control NO · ${f1(pct(fv,ctrl.length))}%`)+
-    k(fr?'a':'g','Falsos rojos',nf(fr),`RutaSky NO / control OK · ${f1(pct(fr,ctrl.length))}%`)+
-    k(pendSeg?'r':'g','Pendientes de Seguridad',nf(pendSeg),`${nf(okAuto)} OK automáticos (satelital)`);
+    k(pendSeg?'r':'g','Pendientes de Seguridad',nf(pendSeg),`${nf(okAuto)} OK automáticos (satelital)`)+
+    (()=>{ const tv=R.filter(r=>r[I.TREV]>0); if(!tv.length) return k('','Tiempo de revisión','—','se mide al validar en la tarjeta');
+      const prom=tv.reduce((s,r)=>s+r[I.TREV],0)/tv.length; const mm=Math.floor(prom/60), ss=Math.round(prom%60);
+      return k(prom<=180?'g':'a','Tiempo prom. de revisión',`${mm}:${String(ss).padStart(2,'0')} min`,`${nf(tv.length)} planes validados · antes 3:00 min/plan`); })();
 
   // Por conductor (barras 100% apiladas)
   leyendaCtrl('leyCtrl1'); leyendaCtrl('leyCtrl2');
@@ -532,6 +541,11 @@ function render(){
 
   // Tortas
   pie('pieRS',[{l:'Sí',v:rsOk,c:'#1D9E75'},{l:'No',v:n-rsOk,c:'#C00000'}],n?f1(pct(rsOk,n))+'%':'');
+  // % cumplimiento según el análisis IA: resultado propuesto por el control satelital (Sí = OK + OK C/OBS)
+  const ia=R.filter(r=>['OK','OK C/OBS','NO'].includes(r[I.RES]));
+  const iaOk=ia.filter(r=>r[I.RES]==='OK').length, iaObs=ia.filter(r=>r[I.RES]==='OK C/OBS').length, iaSi=iaOk+iaObs;
+  pie('pieIA',[{l:'Sí',v:iaSi,c:'#1D9E75'},{l:'No',v:ia.length-iaSi,c:'#C00000'}],ia.length?f1(pct(iaSi,ia.length))+'%':'');
+  $('pieIAnota').innerHTML=ia.length?`Sí = ${nf(iaOk)} OK + ${nf(iaObs)} OK c/obs · ${nf(ia.length)} planes analizados${R.length>ia.length?' de '+nf(R.length):''}`:'';
   const cc=contar(R,I.CTRL);
   pie('pieCtrl',CTRL_ORDEN.map(c=>({l:c,v:cc[c]||0,c:CTRL_COLOR[c]})),ctrl.length?f1(pct(ctrlOk,ctrl.length))+'%':'');
   const mot={}; R.filter(r=>r[I.COM]).forEach(r=>{const m=r[I.COM].replace(/\s+/g,' ').trim();mot[m]=(mot[m]||0)+1});
@@ -618,7 +632,7 @@ async function abrirTarjeta(id){
       fetch(API_URL+'?'+new URLSearchParams({action:'tarjeta',id})).then(r=>r.json()),
       USUARIOS?Promise.resolve({ok:true,items:USUARIOS}):fetch(API_URL+'?action=usuarios').then(r=>r.json())
     ]);
-    if(!t.ok) throw new Error(t.error); USUARIOS=u.items||[]; TJ=t; renderTarjeta();
+    if(!t.ok) throw new Error(t.error); USUARIOS=u.items||[]; TJ=t; revIniciar(id); renderTarjeta();
   }catch(e){$('tjBody').innerHTML=`<div class="card" style="color:#C00000">No se pudo abrir la tarjeta: ${esc(e.message)}</div>`}
 }
 function renderTarjeta(){
@@ -704,14 +718,15 @@ async function enviarValidacion(accion){
   const usuario=$('vUsr').value, pin=$('vPin').value.trim(), obs=$('vObs').value.trim();
   if(!usuario) return mostrarToast('Seleccioná el usuario','err');
   if(!pin) return mostrarToast('Ingresá el PIN','err');
-  const params={action:'validar',id:TJ.plan[I.ID],usuario,pin,accion,obs};
+  const params={action:'validar',id:TJ.plan[I.ID],usuario,pin,accion,obs,seg:revSegundos()};
   if(accion==='MODIFICAR'){ if(!obs) return mostrarToast('La observación es obligatoria al modificar','err'); params.control=$('vCtrl').value; params.motivo=$('vMot').value==='(sin motivo)'?'':$('vMot').value; }
   $('loader').style.display='flex';
   try{
     const j=await fetch(API_URL+'?'+new URLSearchParams(params)).then(r=>r.json());
     if(!j.ok) throw new Error(j.error);
     TJ=j; renderTarjeta(); mostrarToast(accion==='VALIDAR'?'Control validado':'Control modificado y validado','ok');
-    const r=DATA.find(x=>x[I.ID]===j.plan[I.ID]); if(r){ r[I.CTRL]=j.plan[I.CTRL]; r[I.COM]=j.plan[I.COM]; r[I.EST]=j.plan[I.EST]; render(); }
+    const r=DATA.find(x=>x[I.ID]===j.plan[I.ID]); if(r){ r[I.CTRL]=j.plan[I.CTRL]; r[I.COM]=j.plan[I.COM]; r[I.EST]=j.plan[I.EST]; r[I.TREV]=params.seg; render(); }
+    REV.id=null; REV.desde=null;
   }catch(e){mostrarToast(e.message,'err')}
   finally{$('loader').style.display='none'}
 }
