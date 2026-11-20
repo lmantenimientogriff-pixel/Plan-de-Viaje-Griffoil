@@ -269,7 +269,9 @@ textarea{width:100%;font-size:14px;padding:8px;border:1px solid var(--BO);border
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSJn-x-iY7IDaN3xk5NLJqhHiwLn8ahcbEG9Kwa5tMIBLZCn39pCeepUmHNIV1WmDEug/exec';
 
 // Índices de la fila compacta que devuelve el backend
-const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15,TREV:16};
+const I = {ID:0,COND:1,INT:2,FECHA:3,PART:4,DEST:5,RS:6,OBS:7,OBSTXT:8,CTRL:9,COM:10,TIPO:11,EST:12,RES:13,ALR:14,SAT:15,TREV:16,MOTIA:17};
+// Motivo final: en los NO solo los motivos establecidos; en los OK c/obs la justificación
+function motivoFinal(r){ const m=String(r[I.COM]||''); if(r[I.CTRL]==='NO'){ const p=m.split(' / ').map(x=>x.trim()).filter(x=>/^(HACE DETENCION NO PROGRAMADA|DETENCION NO COINCIDE CON PLAN DE VIAJE|HORARIO PLANIFICADO INCORRECTO)/i.test(x)); return p.length?p.join(' / '):m; } if(r[I.CTRL]==='OK C/OBS') return m.replace(/^OK C\/OBS:\s*/i,''); return ''; }
 // Cronómetro de revisión: cuenta solo mientras la tarjeta está abierta y la pestaña visible
 const REV={id:null,acc:0,desde:null};
 function revIniciar(id){ REV.id=id; REV.acc=0; REV.desde=document.hidden?null:Date.now(); }
@@ -436,11 +438,11 @@ const GCOLS=[
   {k:'dest', t:'Destino',        v:r=>r[I.DEST],   f:r=>`<div class="wrap">${esc(r[I.DEST])}</div>`},
   {k:'rs',   t:'RutaSky',        v:r=>r[I.RS],     f:r=>`<span class="est" style="background:${r[I.RS]?'#1D9E75':'#C00000'}">${r[I.RS]?'SÍ':'NO'}</span>`},
   {k:'obs',  t:'Observación chofer',v:r=>r[I.OBSTXT],f:r=>`<div class="wrap">${esc(r[I.OBSTXT])}</div>`},
-  {k:'ctrl', t:'Control',        v:r=>CTRL_ORDEN.indexOf(r[I.CTRL]), f:r=>estCtrl(r[I.CTRL])},
-  {k:'com',  t:'Comentarios',    v:r=>r[I.COM],    f:r=>`<div class="wrap">${esc(r[I.COM])}</div>`},
-  {k:'res',  t:'Control satelital', v:r=>r[I.RES], f:r=>r[I.RES]?estCtrl(r[I.RES]):'<span style="color:#9ca3af">—</span>', val:true},
-  {k:'est',  t:'Estado', v:r=>r[I.EST],  f:r=>estControl(r[I.EST]), val:true},
-  {k:'tipo', t:'Tipo detención', v:r=>r[I.TIPO],   f:r=>`<div class="wrap">${esc(r[I.TIPO])}</div>`, val:true}
+  {k:'res',  t:'Control satelital IA', v:r=>r[I.RES], f:r=>r[I.RES]?estCtrl(r[I.RES]):'<span style="color:#9ca3af">—</span>', val:true},
+  {k:'motia',t:'Motivo IA',      v:r=>r[I.MOTIA],  f:r=>`<div class="wrap">${esc(r[I.MOTIA]||'')}</div>`, val:true},
+  {k:'est',  t:'Estado validación', v:r=>r[I.EST],  f:r=>estControl(r[I.EST]), val:true},
+  {k:'ctrl', t:'Control final',  v:r=>CTRL_ORDEN.indexOf(r[I.CTRL]), f:r=>estCtrl(r[I.CTRL])},
+  {k:'com',  t:'Motivo final',   v:r=>motivoFinal(r), f:r=>`<div class="wrap">${esc(motivoFinal(r))}</div>`}
 ];
 function ordenarGes(k){ if(SORT.col===k) SORT.dir*=-1; else {SORT.col=k; SORT.dir=(k==='fecha'||k==='id')?-1:1;} GES_LIM=100; renderGes(); }
 function filasGestion(){
@@ -462,7 +464,9 @@ function renderGes(){
     <div class="t"><span>#${esc(r[I.ID])} · ${dmy(r[I.FECHA])} ${r[I.FECHA].slice(11)}</span>${estCtrl(r[I.CTRL])}</div>
     <div class="s">${esc(r[I.COND])} · ${esc(r[I.INT])} · RutaSky: ${r[I.RS]?'Sí':'No'}</div>
     <div>${esc(r[I.PART])} → <b>${esc(r[I.DEST])}</b></div>
-    ${r[I.OBSTXT]?`<div class="s"><i>"${esc(r[I.OBSTXT])}"</i></div>`:''}${r[I.COM]?`<div class="s" style="color:#C00000">${esc(r[I.COM])}</div>`:''}</div>`;
+    ${r[I.OBSTXT]?`<div class="s">Obs. chofer: <i>"${esc(r[I.OBSTXT])}"</i></div>`:''}
+    ${r[I.RES]?`<div class="s">Control satelital IA: ${estCtrl(r[I.RES])} ${esc(r[I.MOTIA]||'')}</div><div class="s">Estado validación: ${estControl(r[I.EST])}</div>`:''}
+    <div class="s">Control final: ${estCtrl(r[I.CTRL])} ${motivoFinal(r)?`<span style="color:#C00000">${esc(motivoFinal(r))}</span>`:''}</div></div>`;
   $('tblGes').innerHTML=`<div class="cards">${vis.map(card).join('')}</div>
     <div class="tbl-scroll tbl-ges"><table class="tabla"><thead><tr>${cols.map(x=>`<th class="sort" onclick="ordenarGes('${x.k}')">${x.t}${SORT.col===x.k?(SORT.dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead>
     <tbody>${vis.map(r=>`<tr class="tr-click" onclick="abrirTarjeta('${esc(r[I.ID])}')" title="Ver tarjeta del viaje">${cols.map(x=>`<td>${x.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -611,9 +615,9 @@ function render(){
 // ===================== EXPORTAR =====================
 function exportarCSV(){
   if(!FILTRADO.length) return mostrarToast('No hay filas para exportar','err');
-  const cab=['Id','Conductor','Interno','Fecha','Punto de partida','Destino','Cumplida RutaSky','Tiene observaciones','Observaciones','Control','Comentarios','Tipo detención','Estado validación'];
+  const cab=['Id','Conductor','Interno','Fecha','Punto de partida','Destino','RutaSky','Observación chofer','Control satelital IA','Motivo IA','Estado validación','Control final','Motivo final'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  const csv='﻿'+[cab.join(';'),...filasGestion().map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6]?'Sí':'No',r[7]?'Sí':'No',r[8],r[9],r[10],r[11],r[12]].map(q).join(';'))].join('\n');
+  const csv='﻿'+[cab.join(';'),...filasGestion().map(r=>[r[I.ID],r[I.COND],r[I.INT],r[I.FECHA],r[I.PART],r[I.DEST],r[I.RS]?'Sí':'No',r[I.OBSTXT],r[I.RES]||'',r[I.MOTIA]||'',r[I.EST]||'',r[I.CTRL],motivoFinal(r)].map(q).join(';'))].join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download=`plan_de_viaje_${fDesde.value}_${fHasta.value}.csv`; a.click();
 }
